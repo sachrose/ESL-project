@@ -46,40 +46,13 @@
 
 int main(void)
 {
-    uint32_t led_idx = 0;
-    uint32_t blinks_num;
-    
     /* Configure board. */
     bsp_board_init(BSP_INIT_LEDS);
 
     /* Toggle LEDs. */
     while (true)
     {
-        switch (led_idx)
-        {
-        case 0:
-        case 1:
-            blinks_num = 6;
-            break;
-        case 2:
-            blinks_num = 1;
-            break;
-        case 3:
-            blinks_num = 3;
-            break;
-
-        /*This code will be executed if something goes wrong.*/
-        default:
-            while (true)
-            {
-                bsp_board_led_invert(1);
-                nrf_delay_ms(200);
-            }
-        }
-
-        leds_mode_device_id (led_idx, blinks_num);
-        led_idx = (led_idx + 1) % LEDS_NUMBER;
-               
+        led_blinking_mode_device_id();
         nrf_delay_ms(2000);
     }
  }
