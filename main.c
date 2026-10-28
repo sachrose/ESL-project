@@ -40,19 +40,17 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "nrf_delay.h"
-#include "boards.h"
 #include "esl_led.h"
 
 int main(void)
 {
     /* Configure board. */
-    bsp_board_init(BSP_INIT_LEDS);
+    esl_leds_init();
 
     /* Toggle LEDs. */
     while (true)
     {
         led_blinking_mode_device_id();
-        nrf_delay_ms(2000);
+        esl_delay_ms(2000);
     }
  }
