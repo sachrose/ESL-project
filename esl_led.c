@@ -1,5 +1,4 @@
 #include "nrf_assert.h"
-#include "nrf_gpio.h"
 #include "nrf.h"
 #include "esl_led.h"
 
