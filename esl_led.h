@@ -27,6 +27,8 @@
 
 void esl_leds_init(void);
 
+bool esl_led_state_get(uint32_t led_idx);
+
 void esl_led_invert(uint32_t led_idx);
 
 void esl_led_on(uint32_t led_idx);
