@@ -1,5 +1,4 @@
 #include "nrf_assert.h"
-#include "nrf_gpio.h"
 #include "nrf.h"
 #include "esl_led.h"
 
@@ -39,6 +38,13 @@ void esl_leds_init(void)
         nrf_gpio_cfg_output(esl_led_list[i]);
     }
     esl_leds_off();
+}
+
+bool esl_led_state_get(uint32_t led_idx)
+{
+    ASSERT(led_idx < ESL_LEDS_NUMBER);
+    bool pin_set = nrf_gpio_pin_out_read(esl_led_list[led_idx]) ? true : false;
+    return !pin_set;
 }
 
 void esl_led_invert(uint32_t led_idx)

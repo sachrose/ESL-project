@@ -21,9 +21,13 @@
 
 #define ESL_LEDS_LIST { LED1_G, LED2_R, LED2_G, LED2_B }
 
+#define ESL_LEDS_IDX_LIST { LED_IDX_YELLOW_GREEN, LED_IDX_RED, LED_IDX_GREEN, LED_IDX_BLUE }
+
 #define esl_delay_us(us_time) NRFX_DELAY_US(us_time)
 
 void esl_leds_init(void);
+
+bool esl_led_state_get(uint32_t led_idx);
 
 void esl_led_invert(uint32_t led_idx);
 
@@ -31,9 +35,9 @@ void esl_led_on(uint32_t led_idx);
 
 void esl_led_off(uint32_t led_idx);
 
-void esl_leds_off(void);
-
 void esl_leds_on(void);
+
+void esl_leds_off(void);
 
 void led_blinking_mode_device_id (void);
 
