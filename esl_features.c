@@ -3,27 +3,19 @@
 
 static blink_context_t blink_context = 
 {
-    .how_much_is_the_fish = {6, 6, 1, 3},
+    .blinks = {6, 6, 1, 3},
     .delay_ms = 0,
-    .led_idx = LED_IDX_YELLOW_GREEN,
+    .led_idx = IDX_LED1_G,
     .count = 6,
-    .half_iteration = false
+    .ready_to_count = true
 };
-
-void led_blinking_mode_button(void)
-{
-    if (esl_button_state_get())
-    {
-        blink_iteration();
-    }  
-} 
 
 void blink_iteration(void)
 {
     if (blink_context.delay_ms == 0)    // после обычного завершения функции
     {
         esl_led_invert(blink_context.led_idx);
-        blink_context.half_iteration = !blink_context.half_iteration;
+        blink_context.ready_to_count = !blink_context.ready_to_count;
         blink_context.delay_ms = 500;
     }
     
@@ -38,16 +30,22 @@ void blink_iteration(void)
         return;
     }  
 
-    if (blink_context.count > 0 && !blink_context.half_iteration)
+    if (blink_context.count > 0 && blink_context.ready_to_count)
     {
         blink_context.count--;
     }
     
-   
     if (blink_context.count == 0)
     {
-        esl_led_off(blink_context.led_idx);
         blink_context.led_idx = (blink_context.led_idx + 1) % ESL_LEDS_NUMBER;
-        blink_context.count = blink_context.how_much_is_the_fish[blink_context.led_idx];
+        blink_context.count = blink_context.blinks[blink_context.led_idx];
     }
 }
+
+void led_blinking_mode_button(void)
+{
+    if (esl_button_state_get())
+    {
+        blink_iteration();
+    }  
+} 

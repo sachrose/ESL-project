@@ -5,14 +5,14 @@
 #include "nrf_gpio.h"
 #include "nrfx_glue.h"
 
-#define ESL_LEDS_NUMBER         4
-
 #define LEDS_ACTIVE_STATE       0
 
-#define LED_IDX_YELLOW_GREEN    0
-#define LED_IDX_RED             1
-#define LED_IDX_GREEN           2
-#define LED_IDX_BLUE            3
+#define ESL_LEDS_NUMBER         4
+
+#define IDX_LED1_G              0
+#define IDX_LED2_R              1
+#define IDX_LED2_G              2
+#define IDX_LED2_B              3
 
 #define LED1_G         NRF_GPIO_PIN_MAP(0,6)
 #define LED2_R         NRF_GPIO_PIN_MAP(0,8)
@@ -21,7 +21,7 @@
 
 #define ESL_LEDS_LIST { LED1_G, LED2_R, LED2_G, LED2_B }
 
-#define ESL_LEDS_IDX_LIST { LED_IDX_YELLOW_GREEN, LED_IDX_RED, LED_IDX_GREEN, LED_IDX_BLUE }
+#define ESL_LEDS_IDX_LIST { IDX_LED1_G, IDX_LED2_R, IDX_LED2_G, IDX_LED2_B }
 
 #define esl_delay_us(us_time) NRFX_DELAY_US(us_time)
 
@@ -39,9 +39,9 @@ void esl_leds_on(void);
 
 void esl_leds_off(void);
 
-void led_blinking_mode_device_id (void);
-
 void led_blinking (uint32_t led_idx, uint32_t blinks_num);
+
+void led_blinking_mode_device_id (void);
 
 __STATIC_INLINE void esl_delay_ms(uint32_t ms_time)
 {
