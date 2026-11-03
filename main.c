@@ -41,16 +41,18 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "esl_led.h"
+#include "esl_button.h"
+#include "esl_features.h"
 
 int main(void)
 {
     /* Configure board. */
     esl_leds_init();
+    esl_button_init();
 
     /* Toggle LEDs. */
     while (true)
     {
-        led_blinking_mode_device_id();
-        esl_delay_ms(2000);
+        led_blinking_mode_button();     
     }
  }

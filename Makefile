@@ -16,6 +16,8 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/esl_led.c \
+  $(PROJ_DIR)/esl_button.c \
+  $(PROJ_DIR)/esl_features.c \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
 
 # Include folders common to all targets
