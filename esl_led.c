@@ -94,31 +94,11 @@ void led_blinking (uint32_t led_idx, uint32_t blinks_num)
 
 void led_blinking_mode_device_id (void)
 {
-    static uint32_t led_idx = 0;
-    uint32_t blinks_num;
-    
-    switch (led_idx)
+    uint32_t leds_list[ESL_LEDS_NUMBER] = ESL_LEDS_IDX_LIST;
+    uint32_t count[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
+
+    for (size_t i = 0; i < ESL_LEDS_NUMBER; i++)
     {
-        case IDX_LED1_G:
-        case IDX_LED2_R:
-            blinks_num = 6;
-            break;
-        case IDX_LED2_G:
-            blinks_num = 1;
-            break;
-        case IDX_LED2_B:
-            blinks_num = 3;
-            break;
-
-        /*This code will be executed if something goes wrong.*/
-        default:
-            while (true)
-            {
-                esl_led_invert(1);
-                esl_delay_ms(200);
-            }
+        led_blinking(leds_list[i], count[i]);
     }
-
-    led_blinking (led_idx, blinks_num);
-    led_idx = (led_idx + 1) % ESL_LEDS_NUMBER;       
-}
+} 

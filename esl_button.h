@@ -13,4 +13,6 @@ void esl_button_init(void);
 
 bool esl_button_state_get(void);
 
+void esl_button_gpiote_config(void);
+
 #endif

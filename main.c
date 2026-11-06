@@ -47,17 +47,35 @@
 
 int main(void)
 {
-    /* Configure board. */
-    esl_leds_init();
-    esl_button_init();
-
-    /* Toggle LEDs. */
-    while (true)
+    hardware_init();
+            
+    while (1)
     {
-        led_blinking_mode_button();     
+        led_blinking_mode_button();        
     }
- }
+}  
 
+
+/*
+#define APP_TIMER_TICKS(MS)                                \
+            ((uint32_t)ROUNDED_DIV(                        \
+            (MS) * (uint64_t)APP_TIMER_CLOCK_FREQ,         \
+            1000 * (APP_TIMER_CONFIG_RTC_FREQUENCY + 1)))
+
+#define APP_TIMER_DEF(timer_id) _APP_TIMER_DEF(timer_id)
+
+ret_code_t app_timer_create(app_timer_id_t const *      p_timer_id,
+                            app_timer_mode_t            mode,
+                            app_timer_timeout_handler_t timeout_handler)
+
+ret_code_t app_timer_start(app_timer_t * p_timer, uint32_t timeout_ticks, void * p_context)
+
+typedef void (*app_timer_timeout_handler_t)(void * p_context);
+
+    APP_TIMER_MODE_SINGLE_SHOT,
+    APP_TIMER_MODE_REPEATED  
+
+*/
 
  /*
  /home/user/devel/esl-nsdk/modules/nrfx/drivers/src/nrfx_gpiote.c
