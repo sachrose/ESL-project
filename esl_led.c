@@ -56,13 +56,13 @@ void esl_led_invert(uint32_t led_idx)
 void esl_led_on(uint32_t led_idx)
 {
     ASSERT(led_idx < ESL_LEDS_NUMBER);
-    nrf_gpio_pin_write(esl_led_list[led_idx], 0);
+    nrf_gpio_pin_write(esl_led_list[led_idx], LEDS_ACTIVE_STATE);
 }
 
 void esl_led_off(uint32_t led_idx)
 {
     ASSERT(led_idx < ESL_LEDS_NUMBER);
-    nrf_gpio_pin_write(esl_led_list[led_idx], 1);
+    nrf_gpio_pin_write(esl_led_list[led_idx], !LEDS_ACTIVE_STATE);
 }
 
 void esl_leds_off(void)
@@ -96,7 +96,7 @@ void led_blinking_mode_device_id (void)
 {
     static uint32_t led_idx = 0;
     uint32_t blinks_num;
-
+    
     switch (led_idx)
     {
         case IDX_LED1_G:

@@ -13,6 +13,8 @@ typedef struct
     bool ready_to_count;
 } blink_context_t;
 
+void hardware_init();
+
 void blink_iteration(void);
 
 void led_blinking_mode_button(void);
