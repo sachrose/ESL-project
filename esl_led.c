@@ -24,7 +24,7 @@ static void gpio_output_voltage_setup(void)
     }
 }
 
-void esl_leds_init(void)
+void esl_gpio_leds_init(void)
 {
    if (NRF_POWER->MAINREGSTATUS &
     (POWER_MAINREGSTATUS_MAINREGSTATUS_High << POWER_MAINREGSTATUS_MAINREGSTATUS_Pos))
@@ -37,62 +37,50 @@ void esl_leds_init(void)
     {
         nrf_gpio_cfg_output(esl_led_list[i]);
     }
-    esl_leds_off();
+    esl_gpio_change_all_leds_state(!LEDS_ACTIVE_STATE);
 }
 
-bool esl_led_state_get(uint32_t led_idx)
+bool esl_gpio_led_state_get(uint32_t led_idx)
 {
     ASSERT(led_idx < ESL_LEDS_NUMBER);
     bool pin_set = nrf_gpio_pin_out_read(esl_led_list[led_idx]) ? true : false;
     return !pin_set;
 }
 
-void esl_led_invert(uint32_t led_idx)
+void esl_gpio_led_invert(uint32_t led_idx)
 {
     ASSERT(led_idx < ESL_LEDS_NUMBER);
     nrf_gpio_pin_toggle(esl_led_list[led_idx]);
 }
 
-void esl_led_on(uint32_t led_idx)
+/* Use macro LEDS_ACTIVE_STATE to turn on the led */
+void esl_gpio_change_one_led_state(uint32_t led_idx, bool leds_active_state)
 {
     ASSERT(led_idx < ESL_LEDS_NUMBER);
-    nrf_gpio_pin_write(esl_led_list[led_idx], LEDS_ACTIVE_STATE);
+    nrf_gpio_pin_write(esl_led_list[led_idx], leds_active_state);
 }
 
-void esl_led_off(uint32_t led_idx)
-{
-    ASSERT(led_idx < ESL_LEDS_NUMBER);
-    nrf_gpio_pin_write(esl_led_list[led_idx], !LEDS_ACTIVE_STATE);
-}
-
-void esl_leds_off(void)
+/* Use macro LEDS_ACTIVE_STATE to turn on the leds */
+void esl_gpio_change_all_leds_state(bool leds_active_state)
 {
     uint32_t i;
+
     for (i = 0; i < ESL_LEDS_NUMBER; ++i)
-    {
-        esl_led_off(i);
-    }
+        {
+            esl_gpio_change_one_led_state(i, leds_active_state);
+        }
 }
 
-void esl_leds_on(void)
-{
-    uint32_t i;
-    for (i = 0; i < ESL_LEDS_NUMBER; ++i)
-    {
-        esl_led_on(i);
-    }
-}
-
-void led_blinking (uint32_t led_idx, uint32_t blinks_num)
+void esl_gpio_led_blinking (uint32_t led_idx, uint32_t blinks_num)
 {
     for (uint32_t i = 0; i < (blinks_num * 2); i++)
     {
-        esl_led_invert(led_idx);
+        esl_gpio_led_invert(led_idx);
         esl_delay_ms(500);
     }
 }
 
-void led_blinking_mode_device_id (void)
+void esl_gpio_led_blinking_mode_device_id (void)
 {
     uint32_t leds_list[ESL_LEDS_NUMBER] = ESL_LEDS_IDX_LIST;
     uint32_t count[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
@@ -102,3 +90,4 @@ void led_blinking_mode_device_id (void)
         led_blinking(leds_list[i], count[i]);
     }
 } 
+

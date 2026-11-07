@@ -27,23 +27,19 @@
 
 #define esl_delay_us(us_time) NRFX_DELAY_US(us_time)
 
-void esl_leds_init(void);
+void esl_gpio_leds_init(void);
 
-bool esl_led_state_get(uint32_t led_idx);
+bool esl_gpio_led_state_get(uint32_t led_idx);
 
-void esl_led_invert(uint32_t led_idx);
+void esl_gpio_led_invert(uint32_t led_idx);
 
-void esl_led_on(uint32_t led_idx);
+void esl_gpio_change_one_led_state(uint32_t led_idx, bool leds_active_state);
 
-void esl_led_off(uint32_t led_idx);
+void esl_gpio_change_all_leds_state(bool leds_active_state);
 
-void esl_leds_on(void);
+void esl_gpio_led_blinking (uint32_t led_idx, uint32_t blinks_num);
 
-void esl_leds_off(void);
-
-void led_blinking (uint32_t led_idx, uint32_t blinks_num);
-
-void led_blinking_mode_device_id (void);
+void esl_gpio_led_blinking_mode_device_id (void);
 
 __STATIC_INLINE void esl_delay_ms(uint32_t ms_time)
 {
