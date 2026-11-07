@@ -87,7 +87,6 @@ void esl_gpio_led_blinking_mode_device_id (void)
 
     for (size_t i = 0; i < ESL_LEDS_NUMBER; i++)
     {
-        led_blinking(leds_list[i], count[i]);
+        esl_gpio_led_blinking(leds_list[i], count[i]);
     }
 } 
-

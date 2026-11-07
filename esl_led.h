@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "nrf_gpio.h"
 #include "nrfx_glue.h"
+#include "nrf_pwm.h"
 
 #define LEDS_ACTIVE_STATE       0
 
@@ -19,13 +20,27 @@
 #define LED2_G         NRF_GPIO_PIN_MAP(1,9)
 #define LED2_B         NRF_GPIO_PIN_MAP(0,12)
 
-#define ESL_DEVICE_ID {6, 6, 1, 3}
+#define ESL_DEVICE_ID {1, 2, 1, 2}
 
 #define ESL_LEDS_LIST { LED1_G, LED2_R, LED2_G, LED2_B }
 
 #define ESL_LEDS_IDX_LIST { IDX_LED1_G, IDX_LED2_R, IDX_LED2_G, IDX_LED2_B }
 
 #define esl_delay_us(us_time) NRFX_DELAY_US(us_time)
+
+#define NRFX_PWM_ESL_LED_CONFIG(led_idx)                                              \
+{                                                                                 \
+    .output_pins  = { led | NRFX_PWM_PIN_INVERTED,                                \
+                      NRFX_PWM_PIN_NOT_USED,                                      \
+                      NRFX_PWM_PIN_NOT_USED,                                      \
+                      NRFX_PWM_PIN_NOT_USED },                                    \
+    .irq_priority = NRFX_PWM_DEFAULT_CONFIG_IRQ_PRIORITY,                         \
+    .base_clock   = (nrf_pwm_clk_t)NRFX_PWM_DEFAULT_CONFIG_BASE_CLOCK,            \
+    .count_mode   = (nrf_pwm_mode_t)NRFX_PWM_DEFAULT_CONFIG_COUNT_MODE,           \
+    .top_value    = NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE,                            \
+    .load_mode    = (nrf_pwm_dec_load_t)NRF_PWM_LOAD_INDIVIDUAL,                  \
+    .step_mode    = (nrf_pwm_dec_step_t)NRFX_PWM_DEFAULT_CONFIG_STEP_MODE,        \
+}
 
 void esl_gpio_leds_init(void);
 

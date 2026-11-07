@@ -48,10 +48,18 @@
 int main(void)
 {
     hardware_init();
-            
-    while (1)
+/*    
+    esl_gpio_change_one_led_state(IDX_LED1_G, LEDS_ACTIVE_STATE);
+    esl_delay_ms(2000);
+    esl_gpio_change_one_led_state(IDX_LED2_R, LEDS_ACTIVE_STATE);
+    esl_delay_ms(2000);
+    esl_gpio_change_one_led_state(IDX_LED2_G, LEDS_ACTIVE_STATE);
+    esl_delay_ms(2000);
+    esl_gpio_change_one_led_state(IDX_LED2_B, LEDS_ACTIVE_STATE);
+*/
+    while (true)
     {
-        led_blinking_mode_button();        
+        esl_pwm_led_smooth_blinking_mode_device_id();
     }
 }  
 

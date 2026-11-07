@@ -10,16 +10,21 @@
 typedef struct
 {
     uint8_t blinks[ESL_LEDS_NUMBER];
+    uint16_t delay_ms;
     uint8_t led_idx;
     uint8_t count;
-    bool button_pressed;
-    bool in_bouncing;
-    uint8_t clicks_num;
+    bool ready_to_count;
 } blink_context_t;
 
 void hardware_init();
 
-void pwm_sequences_init(nrf_pwm_sequence_t *pwm_sequence_arr);
+void esl_pwm_init(uint8_t led);
+
+void sequence_init(void);
+
+void esl_pwm_led_smooth_blinking(uint8_t led_idx, uint16_t blinks_num);
+
+void esl_pwm_led_smooth_blinking_mode_device_id(void);
 
 void debounce_IRQHandler(void * p_context);
 
