@@ -48,11 +48,11 @@ void led_blinking_mode_button(void);
 
 void esl_pwm_init(void);
 
-void sequence_init(uint8_t channel, uint16_t duty);
+void sequence_init(uint16_t channel, uint16_t duty);
 
-void up_and_dowm(uint8_t led_idx);
+void up_and_dowm();
 
-void esl_pwm_led_smooth_blinking(uint8_t led_idx);
+void esl_pwm_led_smooth_blinking();
 
 
 

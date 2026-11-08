@@ -60,12 +60,8 @@ int main(void)
     NRF_LOG_INFO("Starting up the project");
     while (true)
     {
-        /*
-        for (uint8_t i = 0; i < ESL_LEDS_NUMBER; i++)
-        {
-            esl_pwm_led_smooth_blinking(i);
-        }            
-        */
+        esl_pwm_led_smooth_blinking();
+    
         LOG_BACKEND_USB_PROCESS();
         NRF_LOG_PROCESS();
     }
