@@ -24,9 +24,7 @@
 
 #define ESL_LEDS_LIST { LED1_G, LED2_R, LED2_G, LED2_B }
 
-#define ESL_LEDS_IDX_LIST { IDX_LED1_G, IDX_LED2_R, IDX_LED2_G, IDX_LED2_B }
-
-#define NRFX_PWM_ESL_LED_CONFIG(led_idx)                                              \
+#define NRFX_PWM_ESL_LED_CONFIG(led_idx)                                          \
 {                                                                                 \
     .output_pins  = { led | NRFX_PWM_PIN_INVERTED,                                \
                       NRFX_PWM_PIN_NOT_USED,                                      \

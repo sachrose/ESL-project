@@ -60,7 +60,7 @@ int main(void)
     NRF_LOG_INFO("Starting up the project");
     while (true)
     {
-        esl_pwm_led_smooth_blinking();
+        led_smooth_blinking_mode_button();
     
         LOG_BACKEND_USB_PROCESS();
         NRF_LOG_PROCESS();

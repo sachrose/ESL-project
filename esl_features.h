@@ -26,6 +26,7 @@ typedef struct
 typedef struct
 {
     uint8_t blinks[ESL_LEDS_NUMBER];
+    uint8_t led_pins[ESL_LEDS_NUMBER];
     uint8_t led_idx;
     uint8_t count;
 } smooth_blink_context_t;
@@ -46,13 +47,26 @@ void blink_iteration(void);
 
 void led_blinking_mode_button(void);
 
-void esl_pwm_init(void);
 
-void sequence_init(uint16_t channel, uint16_t duty);
 
-void up_and_dowm();
+//void esl_pwm_init(void);
 
-void esl_pwm_led_smooth_blinking();
+//void sequence_init(uint16_t channel, uint16_t duty);
+
+//void smooth_blink_iteration();
+
+//void esl_pwm_led_smooth_blinking();
+
+
+
+
+void esl_pwm_init(uint8_t led_pin);
+
+void esl_pwm_seq_values_init(void);
+
+void led_smooth_blink_iteration(void);
+
+void led_smooth_blinking_mode_button(void);
 
 
 
