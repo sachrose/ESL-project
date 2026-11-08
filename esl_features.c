@@ -11,8 +11,9 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
-#define PWM_SEQ_STEPS       100
-#define PWM_ONE_STEP_DUTY   10
+#define PWM_SEQ_STEPS       25
+#define PWM_ONE_STEP_DUTY   (NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE / PWM_SEQ_STEPS)
+#define PWM_SEQ_REPEATS     20
 
 uint32_t esl_leds_list[ESL_LEDS_NUMBER] = ESL_LEDS_LIST;
 uint8_t blinks_num[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
@@ -27,7 +28,7 @@ static nrf_pwm_sequence_t pwm_seq_0 =
 {
     .values.p_common = pwm_seq_0_values,
     .length = NRF_PWM_VALUES_LENGTH(pwm_seq_0_values),
-    .repeats = 0,
+    .repeats = PWM_SEQ_REPEATS,
     .end_delay = 0
 };
 
@@ -36,7 +37,7 @@ static nrf_pwm_sequence_t pwm_seq_1 =
 {
     .values.p_common = pwm_seq_1_values,
     .length = NRF_PWM_VALUES_LENGTH(pwm_seq_1_values),
-    .repeats = 0,
+    .repeats = PWM_SEQ_REPEATS,
     .end_delay = 0
 };
 
@@ -51,7 +52,7 @@ static blink_context_t blink_context =
 {
     .blinks = ESL_DEVICE_ID,
     .delay_ms = 0,
-    .led_idx = IDX_LED1_G,
+    .led_idx = 0,
     .count = 6,
     .ready_to_count = true
 };
@@ -61,17 +62,15 @@ static smooth_blink_context_t smooth_blink_context =
     .blinks = ESL_DEVICE_ID,
     .led_pins = ESL_LEDS_LIST,
     .led_idx = 3,
-    .count = 6
+    .count = 0
 };
 
 void hardware_init()
-{    
-    
+{
     logs_init();
     
-    NRF_LOG_INFO(">hardware_init()");    
-    esl_gpio_leds_init();    
-    NRF_LOG_DEBUG("Init the LF clock for USB - End\nInit leds - End");
+    NRF_LOG_INFO(">hardware_init()");       
+    NRF_LOG_DEBUG("Init the LF clock for USB - End");
    
     app_timer_init();   
     app_timer_create(&debounce, APP_TIMER_MODE_SINGLE_SHOT, debounce_IRQHandler);
@@ -221,22 +220,24 @@ void esl_pwm_seq_values_init(void)
 
 void led_smooth_blink_iteration(void)
 {
-    if (smooth_blink_context.count == 0)
+    if (nrfx_pwm_is_stopped(&pwm_0))
     {
-        smooth_blink_context.led_idx = (smooth_blink_context.led_idx + 1) % ESL_LEDS_NUMBER;
-        smooth_blink_context.count = smooth_blink_context.blinks[smooth_blink_context.led_idx];
+        if (smooth_blink_context.count == 0)
+        {
+            smooth_blink_context.led_idx = (smooth_blink_context.led_idx + 1) % ESL_LEDS_NUMBER;
+            smooth_blink_context.count = smooth_blink_context.blinks[smooth_blink_context.led_idx];
 
-        nrfx_pwm_uninit(&pwm_0);
-        esl_pwm_init(smooth_blink_context.led_pins[smooth_blink_context.led_idx]);
-    }
+            nrfx_pwm_uninit(&pwm_0);
+            esl_pwm_init(smooth_blink_context.led_pins[smooth_blink_context.led_idx]);
+            NRF_LOG_DEBUG("start blinking by LED_%d, count %d", smooth_blink_context.led_idx, smooth_blink_context.count);
+        }
 
-    if (nrfx_pwm_is_stopped(&pwm_0) && smooth_blink_context.count > 0)
-    {
-        nrf_drv_pwm_complex_playback(&pwm_0, &pwm_seq_0, &pwm_seq_1, 1, NRF_DRV_PWM_FLAG_STOP);
-        smooth_blink_context.count--;
+        if (smooth_blink_context.count > 0)
+        {
+            nrf_drv_pwm_complex_playback(&pwm_0, &pwm_seq_0, &pwm_seq_1, 1, NRFX_PWM_FLAG_STOP);
+            smooth_blink_context.count--;
+        }
     }
-    
-    
 }
 
 void led_smooth_blinking_mode_button(void)

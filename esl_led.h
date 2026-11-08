@@ -10,17 +10,12 @@
 
 #define ESL_LEDS_NUMBER         4
 
-#define IDX_LED1_G              0
-#define IDX_LED2_R              1
-#define IDX_LED2_G              2
-#define IDX_LED2_B              3
-
 #define LED1_G         NRF_GPIO_PIN_MAP(0,6)
 #define LED2_R         NRF_GPIO_PIN_MAP(0,8)
 #define LED2_G         NRF_GPIO_PIN_MAP(1,9)
 #define LED2_B         NRF_GPIO_PIN_MAP(0,12)
 
-#define ESL_DEVICE_ID {1, 2, 1, 2}
+#define ESL_DEVICE_ID {6, 6, 1, 3}
 
 #define ESL_LEDS_LIST { LED1_G, LED2_R, LED2_G, LED2_B }
 
