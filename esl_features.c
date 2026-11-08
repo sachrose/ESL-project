@@ -10,10 +10,12 @@
 #include "app_timer.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
+#include "nrfx_systick.h"
 
-#define PWM_SEQ_STEPS       25
+#define PWM_SEQ_STEPS       50
+#define PWM_STEPS_ARR_SIZE  (PWM_SEQ_STEPS & 1 ? PWM_SEQ_STEPS : (PWM_SEQ_STEPS + 1))
 #define PWM_ONE_STEP_DUTY   (NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE / PWM_SEQ_STEPS)
-#define PWM_SEQ_REPEATS     20
+#define DUTY_DURATION_US       20000
 
 uint32_t esl_leds_list[ESL_LEDS_NUMBER] = ESL_LEDS_LIST;
 uint8_t blinks_num[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
@@ -23,21 +25,12 @@ APP_TIMER_DEF(double_click);
 
 static nrfx_pwm_t pwm_0 = NRFX_PWM_INSTANCE(0);
 
-static nrf_pwm_values_common_t pwm_seq_0_values[PWM_SEQ_STEPS];
+static nrf_pwm_values_common_t pwm_seq_0_values[PWM_STEPS_ARR_SIZE ];
 static nrf_pwm_sequence_t pwm_seq_0 = 
 {
     .values.p_common = pwm_seq_0_values,
-    .length = NRF_PWM_VALUES_LENGTH(pwm_seq_0_values),
-    .repeats = PWM_SEQ_REPEATS,
-    .end_delay = 0
-};
-
-static nrf_pwm_values_common_t pwm_seq_1_values[PWM_SEQ_STEPS];
-static nrf_pwm_sequence_t pwm_seq_1 = 
-{
-    .values.p_common = pwm_seq_1_values,
-    .length = NRF_PWM_VALUES_LENGTH(pwm_seq_1_values),
-    .repeats = PWM_SEQ_REPEATS,
+    .length = 1,
+    .repeats = 0,
     .end_delay = 0
 };
 
@@ -61,14 +54,17 @@ static smooth_blink_context_t smooth_blink_context =
 {
     .blinks = ESL_DEVICE_ID,
     .led_pins = ESL_LEDS_LIST,
+    .systick_state.time = 0,
     .led_idx = 3,
-    .count = 0
+    .count = 0,
+    .current_step = 0
 };
 
 void hardware_init()
 {
     logs_init();
-    
+    nrfx_systick_init();
+    nrfx_systick_get(&smooth_blink_context.systick_state);
     NRF_LOG_INFO(">hardware_init()");       
     NRF_LOG_DEBUG("Init the LF clock for USB - End");
    
@@ -209,34 +205,41 @@ void esl_pwm_init(uint8_t led_pin)
 
 void esl_pwm_seq_values_init(void)
 {
-    uint16_t value = 0;
-    for (uint32_t i = 0; i < PWM_SEQ_STEPS; i++)
+    for (uint16_t i = 0; i < PWM_STEPS_ARR_SIZE; i++)
     {
-        pwm_seq_0_values[i] = value;
-        pwm_seq_1_values[PWM_SEQ_STEPS - i - 1] = value;
-        value += PWM_ONE_STEP_DUTY;
+        uint16_t value = (i <= PWM_STEPS_ARR_SIZE / 2) ? i : (PWM_STEPS_ARR_SIZE - 1 - i);
+        pwm_seq_0_values[i] = value * PWM_ONE_STEP_DUTY;
     }
 }
 
 void led_smooth_blink_iteration(void)
-{
-    if (nrfx_pwm_is_stopped(&pwm_0))
+{   
+    if (smooth_blink_context.count == 0)
     {
-        if (smooth_blink_context.count == 0)
-        {
-            smooth_blink_context.led_idx = (smooth_blink_context.led_idx + 1) % ESL_LEDS_NUMBER;
-            smooth_blink_context.count = smooth_blink_context.blinks[smooth_blink_context.led_idx];
+        smooth_blink_context.led_idx = (smooth_blink_context.led_idx + 1) % ESL_LEDS_NUMBER;
+        smooth_blink_context.count = smooth_blink_context.blinks[smooth_blink_context.led_idx];
 
-            nrfx_pwm_uninit(&pwm_0);
-            esl_pwm_init(smooth_blink_context.led_pins[smooth_blink_context.led_idx]);
-            NRF_LOG_DEBUG("start blinking by LED_%d, count %d", smooth_blink_context.led_idx, smooth_blink_context.count);
-        }
+        nrfx_pwm_uninit(&pwm_0);
+        esl_pwm_init(smooth_blink_context.led_pins[smooth_blink_context.led_idx]);
+        nrfx_systick_get(&smooth_blink_context.systick_state);
+        NRF_LOG_DEBUG("start blinking by LED_%d, count %d", smooth_blink_context.led_idx, smooth_blink_context.count);
+    }
 
-        if (smooth_blink_context.count > 0)
+    if (smooth_blink_context.count > 0)
+    {
+        if (nrfx_systick_test(&smooth_blink_context.systick_state, DUTY_DURATION_US))
         {
-            nrf_drv_pwm_complex_playback(&pwm_0, &pwm_seq_0, &pwm_seq_1, 1, NRFX_PWM_FLAG_STOP);
-            smooth_blink_context.count--;
-        }
+            smooth_blink_context.current_step = (smooth_blink_context.current_step + 1) % PWM_STEPS_ARR_SIZE;
+            pwm_seq_0.values.p_common = &pwm_seq_0_values[smooth_blink_context.current_step];
+            
+            nrfx_systick_get(&smooth_blink_context.systick_state);
+            nrfx_pwm_simple_playback(&pwm_0, &pwm_seq_0, 1, NRFX_PWM_FLAG_LOOP);
+
+            if (smooth_blink_context.current_step == (PWM_STEPS_ARR_SIZE - 1))
+            {
+                smooth_blink_context.count--;
+            }
+        }        
     }
 }
 
@@ -246,172 +249,4 @@ void led_smooth_blinking_mode_button(void)
     {
         led_smooth_blink_iteration();
     }
-    else
-    {
-        if (!nrfx_pwm_is_stopped(&pwm_0))
-        {
-            nrfx_pwm_stop(&pwm_0, true);
-        }   
-    }
 }
-
-
-
-
-
-
-
-/*
-void sequence_init(uint16_t channel, uint16_t duty)
-{
-    switch (channel)
-    {
-    case 0:
-        pwm_seq_0_values.channel_0 = duty;
-        break;
-    case 1:
-        pwm_seq_0_values.channel_1 = duty;
-        break;
-    case 2:
-        pwm_seq_0_values.channel_2 = duty;
-        break;
-    case 3:
-        pwm_seq_0_values.channel_3 = duty;
-        break;
-    
-    default:
-        NRF_LOG_DEBUG("Sequence_init: Something went wrong");   
-    }
-
-    nrf_pwm_sequence_t pwm_0_seq_0 =
-    {
-        .values.p_individual = &pwm_seq_0_values,
-        .length = NRF_PWM_VALUES_LENGTH(pwm_seq_0_values),
-        .repeats = 0,
-        .end_delay = 0
-    };
-
-    //static nrf_pwm_sequence_t pwm_0_seq_1;  
-    nrfx_pwm_simple_playback(&pwm_0, &pwm_0_seq_0, 1, NRFX_PWM_FLAG_STOP);
-}
-
-void smooth_blink_iteration()
-{
-    smooth_blink_context.led_idx = (smooth_blink_context.led_idx + 1) % ESL_LEDS_NUMBER;
-    
-    for (smooth_blink_context.count = smooth_blink_context.blinks[smooth_blink_context.led_idx]; smooth_blink_context.count > 0; smooth_blink_context.count--)
-    {
-        NRF_LOG_INFO("Light on");
-        for (uint16_t j = 0; j < NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE; j += PWM_ONE_STEP_DUTY)
-        {
-            sequence_init(smooth_blink_context.led_idx, smooth_blink_context.count);
-        }
-        
-        NRF_LOG_INFO("Light off");
-        for (uint16_t j = NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE; j >= 0; j -= PWM_ONE_STEP_DUTY)
-        {
-            sequence_init(smooth_blink_context.led_idx, smooth_blink_context.count);
-        }
-        sequence_init(smooth_blink_context.led_idx, 0);
-    }
-}
-
-void esl_pwm_led_smooth_blinking()
-{
-    if(button_context.button_button)
-    {
-        smooth_blink_iteration();
-    }
-}
-
-    
-   
-
-
-
-
-
-
-    
-    for (uint16_t i = 0; i < PWM_SEQ_STEPS; i++)
-    {
-        uint16_t light_power = ((i * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / PWM_SEQ_STEPS);
-        pwm_seq_0_values[i].channel_0 = light_power;
-        pwm_seq_1_values[PWM_SEQ_STEPS -1 - i].channel_0 = light_power;
-    }
-       
-    pwm_sequence_0.values.p_individual = pwm_seq_0_values;
-    pwm_sequence_1.values.p_individual = pwm_seq_1_values;
-   
-    pwm_sequence_0.length = pwm_sequence_1.length = PWM_SEQ_STEPS;
-    pwm_sequence_0.repeats = pwm_sequence_1.repeats = 2;
-    pwm_sequence_0.end_delay = pwm_sequence_1.end_delay = 0;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void esl_pwm_init(uint8_t led)
-{
-    nrfx_pwm_config_t pwm_0_cfg = NRFX_PWM_ESL_LED_CONFIG(led_idx);
-    nrfx_pwm_init(&pwm_0, &pwm_0_cfg, NULL);
-    sequence_init();    
-}
-
-void sequence_init(void)
-{
-    for (uint16_t i = 0; i < PWM_SEQ_STEPS; i++)
-    {
-        uint16_t light_power = ((i * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / PWM_SEQ_STEPS);
-        pwm_seq_0_values[i].channel_0 = light_power;
-        pwm_seq_1_values[PWM_SEQ_STEPS -1 - i].channel_0 = light_power;
-    }
-       
-    pwm_sequence_0.values.p_individual = pwm_seq_0_values;
-    pwm_sequence_1.values.p_individual = pwm_seq_1_values;
-   
-    pwm_sequence_0.length = pwm_sequence_1.length = PWM_SEQ_STEPS;
-    pwm_sequence_0.repeats = pwm_sequence_1.repeats = 2;
-    pwm_sequence_0.end_delay = pwm_sequence_1.end_delay = 0;
-}
-
-
-
-void esl_pwm_led_smooth_blinking_mode_device_id(void)
-{
-    
-    uint8_t leds_list[ESL_LEDS_NUMBER] = ESL_LEDS_IDX_LIST;
-    uint16_t blinks_num[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
-
-    for (uint32_t i = 0; i < ESL_LEDS_NUMBER; i++)
-    {  
-        esl_pwm_init(leds_list[i]);
-        esl_pwm_led_smooth_blinking(leds_list[i], blinks_num[i]);
-    }
-}
-
-*/
-
-
-
-

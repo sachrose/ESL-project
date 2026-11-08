@@ -46,13 +46,7 @@
 #include "nrf_log_backend_usb.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
-/*
-/home/user/devel/esl-nsdk/components/libraries/ringbuf/nrf_ringbuf.h
-/home/user/devel/esl-nsdk/components/libraries/log/nrf_log_default_backends.h
 
-/home/user/devel/esl-nsdk/components/libraries/ringbuf/nrf_ringbuf.c
-/home/user/devel/esl-nsdk/components/libraries/log/src/nrf_log_default_backends.c
-*/
 int main(void)
 {    
     hardware_init();
