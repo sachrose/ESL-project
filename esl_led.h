@@ -26,8 +26,6 @@
 
 #define ESL_LEDS_IDX_LIST { IDX_LED1_G, IDX_LED2_R, IDX_LED2_G, IDX_LED2_B }
 
-#define esl_delay_us(us_time) NRFX_DELAY_US(us_time)
-
 #define NRFX_PWM_ESL_LED_CONFIG(led_idx)                                              \
 {                                                                                 \
     .output_pins  = { led | NRFX_PWM_PIN_INVERTED,                                \
@@ -64,7 +62,7 @@ __STATIC_INLINE void esl_delay_ms(uint32_t ms_time)
     }
 
     do {
-        esl_delay_us(1000);
+        NRFX_DELAY_US(1000);
     } while (--ms_time);
 }
 
