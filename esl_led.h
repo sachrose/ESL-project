@@ -52,27 +52,27 @@ typedef enum
 extern blink_context_t blink_context;
 extern smooth_blink_context_t smooth_blink_context;
 
-#define ESL_PWM_LED_CONFIG                                                  \
-{                                                                           \
-    .output_pins  = { led_pin | NRFX_PWM_PIN_INVERTED,                      \
-                      NRFX_PWM_PIN_NOT_USED,                                \
-                      NRFX_PWM_PIN_NOT_USED,                                \
-                      NRFX_PWM_PIN_NOT_USED },                              \
-    .irq_priority = NRFX_PWM_DEFAULT_CONFIG_IRQ_PRIORITY,                   \
-    .base_clock   = (nrf_pwm_clk_t)NRFX_PWM_DEFAULT_CONFIG_BASE_CLOCK,      \
-    .count_mode   = (nrf_pwm_mode_t)NRFX_PWM_DEFAULT_CONFIG_COUNT_MODE,     \
-    .top_value    = NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE,                      \
-    .load_mode    = NRFX_PWM_DEFAULT_CONFIG_LOAD_MODE,                      \
-    .step_mode    = (nrf_pwm_dec_step_t)NRFX_PWM_DEFAULT_CONFIG_STEP_MODE,  \
+#define ESL_PWM_LED_CONFIG(led_pin)                                        \
+{                                                                          \
+    .output_pins  = { led_pin | NRFX_PWM_PIN_INVERTED,                     \
+                      NRFX_PWM_PIN_NOT_USED,                               \
+                      NRFX_PWM_PIN_NOT_USED,                               \
+                      NRFX_PWM_PIN_NOT_USED },                             \
+    .irq_priority = NRFX_PWM_DEFAULT_CONFIG_IRQ_PRIORITY,                  \
+    .base_clock   = (nrf_pwm_clk_t)NRFX_PWM_DEFAULT_CONFIG_BASE_CLOCK,     \
+    .count_mode   = (nrf_pwm_mode_t)NRFX_PWM_DEFAULT_CONFIG_COUNT_MODE,    \
+    .top_value    = NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE,                     \
+    .load_mode    = (nrf_pwm_dec_load_t)NRFX_PWM_DEFAULT_CONFIG_LOAD_MODE, \
+    .step_mode    = (nrf_pwm_dec_step_t)NRFX_PWM_DEFAULT_CONFIG_STEP_MODE, \
 }
 
 void esl_gpio_leds_init(void);
 
-bool esl_gpio_led_state_get(uint8_t led_idx);
+bool esl_gpio_led_state_get(uint32_t led_idx);
 
-void esl_gpio_led_invert(uint8_t led_idx);
+void esl_gpio_led_invert(uint32_t led_idx);
 
-void esl_gpio_change_one_led_state(uint8_t led_idx, bool leds_active_state);
+void esl_gpio_change_one_led_state(uint32_t led_idx, bool leds_active_state);
 
 void esl_gpio_change_all_leds_state(bool leds_active_state);
 

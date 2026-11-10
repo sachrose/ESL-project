@@ -7,8 +7,8 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
-static uint8_t esl_led_list[ESL_LEDS_NUMBER] = ESL_LEDS_LIST;
-static uint8_t blinks_num[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
+static const uint8_t esl_led_list[ESL_LEDS_NUMBER] = ESL_LEDS_LIST;
+static const uint8_t blinks_num[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
 
 static nrfx_pwm_t pwm_0 = NRFX_PWM_INSTANCE(0);
 static nrf_pwm_values_common_t pwm_seq_0_values[ESL_PWM_LED_STEPS_ARR_SIZE];
@@ -26,7 +26,7 @@ blink_context_t blink_context =
     .blinks = ESL_DEVICE_ID,
     .delay_ms = 0,
     .led_idx = 0,
-    .count = 6,
+    .count = blinks_num[0],
     .ready_to_count = true
 };
 
@@ -76,21 +76,21 @@ void esl_gpio_leds_init(void)
     esl_gpio_change_all_leds_state(!LEDS_ACTIVE_STATE);
 }
 
-bool esl_gpio_led_state_get(uint8_t led_idx)
+bool esl_gpio_led_state_get(uint32_t led_idx)
 {
     ASSERT(led_idx < ESL_LEDS_NUMBER);
     bool pin_set = nrf_gpio_pin_out_read(esl_led_list[led_idx]) ? true : false;
     return !pin_set;
 }
 
-void esl_gpio_led_invert(uint8_t led_idx)
+void esl_gpio_led_invert(uint32_t led_idx)
 {
     ASSERT(led_idx < ESL_LEDS_NUMBER);
     nrf_gpio_pin_toggle(esl_led_list[led_idx]);
 }
 
 /* Use macro LEDS_ACTIVE_STATE to turn on the led */
-void esl_gpio_change_one_led_state(uint8_t led_idx, bool leds_active_state)
+void esl_gpio_change_one_led_state(uint32_t led_idx, bool leds_active_state)
 {
     ASSERT(led_idx < ESL_LEDS_NUMBER);
     nrf_gpio_pin_write(esl_led_list[led_idx], leds_active_state);
@@ -109,9 +109,9 @@ void esl_gpio_change_all_leds_state(bool leds_active_state)
 
 void esl_gpio_led_blinking_mode_device_id(void)
 {
-    for (uint8_t i = 0; i < ESL_LEDS_NUMBER; i++)
+    for (uint32_t i = 0; i < ESL_LEDS_NUMBER; i++)
     {
-        for (uint8_t j = 0; j < (blinks_num[j] * 2); j++)
+        for (uint8_t j = 0; j < (blinks_num[i] * 2); j++)
         {
             esl_gpio_led_invert(i);
             esl_delay_ms(500);
@@ -121,22 +121,7 @@ void esl_gpio_led_blinking_mode_device_id(void)
 
 void esl_pwm_led_init(uint8_t led_pin)
 {   
-    nrfx_pwm_config_t pwm_0_cfg = //ESL_PWM_LED_CONFIG;
-    {
-        .output_pins =
-        {
-            led_pin | NRFX_PWM_PIN_INVERTED,
-            NRF_DRV_PWM_PIN_NOT_USED,
-            NRF_DRV_PWM_PIN_NOT_USED,
-            NRF_DRV_PWM_PIN_NOT_USED
-        },
-        .irq_priority = NRFX_PWM_DEFAULT_CONFIG_IRQ_PRIORITY,
-        .base_clock   = (nrf_pwm_clk_t)NRFX_PWM_DEFAULT_CONFIG_BASE_CLOCK,
-        .count_mode   = NRFX_PWM_DEFAULT_CONFIG_COUNT_MODE,
-        .top_value    = NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE,
-        .load_mode    = NRFX_PWM_DEFAULT_CONFIG_LOAD_MODE,
-        .step_mode    = (nrf_pwm_dec_step_t)NRFX_PWM_DEFAULT_CONFIG_STEP_MODE,
-    };
+    nrfx_pwm_config_t pwm_0_cfg = ESL_PWM_LED_CONFIG(led_pin);
     
     nrfx_pwm_init(&pwm_0, &pwm_0_cfg, NULL); 
 }
@@ -167,7 +152,7 @@ void led_blink_iteration(void)
 
     if (blink_context.delay_ms > 0)
     {
-        return;
+        goto led_blink_iteration_end;
     }  
 
     if (blink_context.count > 0 && blink_context.ready_to_count)
@@ -178,8 +163,11 @@ void led_blink_iteration(void)
     if (blink_context.count == 0)
     {
         blink_context.led_idx = (blink_context.led_idx + 1) % ESL_LEDS_NUMBER;
-        blink_context.count = blink_context.blinks[blink_context.led_idx];
+        blink_context.count = blinks_num[blink_context.led_idx];
     }
+
+led_blink_iteration_end:
+    return;
 }
 
 void led_smooth_blink_iteration(void)
