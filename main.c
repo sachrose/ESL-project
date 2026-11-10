@@ -43,16 +43,26 @@
 #include "esl_led.h"
 #include "esl_button.h"
 #include "esl_features.h"
+#include "nrf_log_backend_usb.h"
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
 
 int main(void)
-{
-    /* Configure board. */
-    esl_leds_init();
-    esl_button_init();
+{    
+#ifdef BLINK_MODE_SIMPLE_ENABLED
+    hardware_simple_init();
+#endif
+    
+#ifdef BLINK_MODE_SMOOTH_ENABLED
+    hardware_smooth_init();
+#endif
 
-    /* Toggle LEDs. */
+    NRF_LOG_INFO("Starting up the project");
     while (true)
     {
-        led_blinking_mode_button();     
+        led_mode_by_button();
+    
+        LOG_BACKEND_USB_PROCESS();
+        NRF_LOG_PROCESS();
     }
- }
+}  

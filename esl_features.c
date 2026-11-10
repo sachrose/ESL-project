@@ -1,51 +1,68 @@
 #include "esl_features.h"
 #include "esl_button.h"
+#include "esl_led.h"
+#include "nrfx_gpiote.h"
+#include "nrf_gpiote.h"
+#include "nrf_drv_clock.h"
+#include "app_timer.h"
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+#include "nrf_log_default_backends.h"
 
-static blink_context_t blink_context = 
+#ifdef BLINK_MODE_SIMPLE_ENABLED
+void hardware_simple_init(void)
 {
-    .blinks = {6, 6, 1, 3},
-    .delay_ms = 0,
-    .led_idx = IDX_LED1_G,
-    .count = 6,
-    .ready_to_count = true
-};
+    esl_gpio_leds_init();
+    esl_button_init();
+}
+#endif
 
-void blink_iteration(void)
+#ifdef BLINK_MODE_SMOOTH_ENABLED
+void hardware_smooth_init(void)
 {
-    if (blink_context.delay_ms == 0)    // после обычного завершения функции
-    {
-        esl_led_invert(blink_context.led_idx);
-        blink_context.ready_to_count = !blink_context.ready_to_count;
-        blink_context.delay_ms = 500;
-    }
-    
-    while (blink_context.delay_ms > 0 && esl_button_state_get())    
-    {
-        esl_delay_ms(1);
-        blink_context.delay_ms--;
-    }
+    logs_init();
+    NRF_LOG_INFO(">hardware_init()");
+    nrfx_systick_init();
+    NRF_LOG_DEBUG("Init the LF clock for USB - End. Init the systick for PWM - End");
+   
+    app_timer_init();
+    apptimer2_init_for_button_handlers();
+    NRF_LOG_DEBUG("Init the APP_TIMER2 for button IRQhandlers- End");
 
-    if (blink_context.delay_ms > 0)
-    {
-        return;
-    }  
+    nrfx_gpiote_init();
+    esl_button_gpiote_config();
+    nrfx_gpiote_in_event_enable(BUTTON, true);
+    NRF_LOG_DEBUG("Init GPIOTE - End"); 
 
-    if (blink_context.count > 0 && blink_context.ready_to_count)
-    {
-        blink_context.count--;
-    }
-    
-    if (blink_context.count == 0)
-    {
-        blink_context.led_idx = (blink_context.led_idx + 1) % ESL_LEDS_NUMBER;
-        blink_context.count = blink_context.blinks[blink_context.led_idx];
-    }
+    esl_pwm_led_seq_values_init();
+    NRF_LOG_DEBUG("Init PWM - End");
+    NRF_LOG_INFO("<hardware_init()");
+}
+#endif
+
+void logs_init(void)
+{
+    ret_code_t ret = NRF_LOG_INIT(NULL);
+    APP_ERROR_CHECK(ret);
+
+    NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 
-void led_blinking_mode_button(void)
+void led_mode_by_button(void)
 {
+    
+#ifdef BLINK_MODE_SIMPLE_ENABLED
     if (esl_button_state_get())
     {
-        blink_iteration();
-    }  
-} 
+        led_blink_iteration();
+    }
+#endif       
+        
+#ifdef BLINK_MODE_SMOOTH_ENABLED
+        
+    if (esl_button_button_get())
+    {
+        led_smooth_blink_iteration();
+    }
+#endif
+}

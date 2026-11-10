@@ -4,17 +4,20 @@
 #include <stdint.h>
 #include "esl_led.h"
 
-typedef struct
-{
-    uint8_t blinks[ESL_LEDS_NUMBER];
-    uint16_t delay_ms;
-    uint8_t led_idx;
-    uint8_t count;
-    bool ready_to_count;
-} blink_context_t;
+#if defined(BLINK_MODE_SIMPLE_ENABLED) && defined(BLINK_MODE_SMOOTH_ENABLED)
+#error Choose only one mode in Makefile!
+#endif
 
-void blink_iteration(void);
+#ifdef BLINK_MODE_SIMPLE_ENABLED
+void hardware_simple_init(void);
+#endif
 
-void led_blinking_mode_button(void);
+#ifdef BLINK_MODE_SMOOTH_ENABLED
+void hardware_smooth_init(void);
+#endif
+
+void logs_init(void);
+
+void led_mode_by_button(void);
 
 #endif
