@@ -54,7 +54,7 @@ int main(void)
     NRF_LOG_INFO("Starting up the project");
     while (true)
     {
-        led_smooth_blinking_mode_button();
+        led_mode_by_button(BLINK_MODE_SMOOTH);
     
         LOG_BACKEND_USB_PROCESS();
         NRF_LOG_PROCESS();
