@@ -49,6 +49,7 @@
 
 int main(void)
 {    
+    //esl_gpio_leds_init(); - use if you want BLINK_MODE_SIMPLE
     hardware_init();
 
     NRF_LOG_INFO("Starting up the project");

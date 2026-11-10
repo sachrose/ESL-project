@@ -23,7 +23,6 @@ static nrf_pwm_sequence_t pwm_seq_0 =
 
 blink_context_t blink_context = 
 {
-    .blinks = ESL_DEVICE_ID,
     .delay_ms = 0,
     .led_idx = 0,
     .count = blinks_num[0],
@@ -32,8 +31,6 @@ blink_context_t blink_context =
 
 smooth_blink_context_t smooth_blink_context = 
 {
-    .blinks = ESL_DEVICE_ID,
-    .led_pins = ESL_LEDS_LIST,
     .systick_state.time = 0,
     .led_idx = 3,
     .count = 0,
@@ -175,10 +172,10 @@ void led_smooth_blink_iteration(void)
     if (smooth_blink_context.count == 0)
     {
         smooth_blink_context.led_idx = (smooth_blink_context.led_idx + 1) % ESL_LEDS_NUMBER;
-        smooth_blink_context.count = smooth_blink_context.blinks[smooth_blink_context.led_idx];
+        smooth_blink_context.count = blinks_num[smooth_blink_context.led_idx];
 
         nrfx_pwm_uninit(&pwm_0);
-        esl_pwm_led_init(smooth_blink_context.led_pins[smooth_blink_context.led_idx]);
+        esl_pwm_led_init(esl_led_list[smooth_blink_context.led_idx]);
         nrfx_systick_get(&smooth_blink_context.systick_state);
         NRF_LOG_DEBUG("start blinking by LED_%d, count %d", smooth_blink_context.led_idx, smooth_blink_context.count);
     }

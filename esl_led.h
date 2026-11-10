@@ -19,14 +19,13 @@
 #define ESL_DEVICE_ID {6, 6, 1, 3}
 #define ESL_LEDS_LIST { LED1_G, LED2_R, LED2_G, LED2_B }
 
-#define ESL_PWM_LED_SEQ_STEPS           50
+#define ESL_PWM_LED_SEQ_STEPS           20
 #define ESL_PWM_LED_STEPS_ARR_SIZE      (ESL_PWM_LED_SEQ_STEPS & 1 ? ESL_PWM_LED_SEQ_STEPS : (ESL_PWM_LED_SEQ_STEPS + 1))
 #define ESL_PWM_LED_ONE_STEP_DUTY       (NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE / ESL_PWM_LED_SEQ_STEPS)
 #define ESL_PWM_LED_DUTY_DURATION_US    20000
 
 typedef struct
 {
-    uint8_t blinks[ESL_LEDS_NUMBER];
     uint16_t delay_ms;
     uint8_t led_idx;
     uint8_t count;
@@ -35,8 +34,6 @@ typedef struct
 
 typedef struct
 {
-    uint8_t blinks[ESL_LEDS_NUMBER];
-    uint8_t led_pins[ESL_LEDS_NUMBER];
     nrfx_systick_state_t systick_state;
     uint8_t led_idx;
     uint8_t count;

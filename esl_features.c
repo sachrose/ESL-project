@@ -31,7 +31,7 @@ void hardware_init()
     NRF_LOG_DEBUG("Init GPIOTE - End"); 
 
     esl_pwm_led_seq_values_init();
-    esl_pwm_led_init(LED2_B);
+    //esl_pwm_led_init(LED2_B);
     NRF_LOG_DEBUG("Init PWM - End");
     NRF_LOG_INFO("<hardware_init()");
 }
