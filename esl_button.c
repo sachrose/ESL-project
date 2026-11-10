@@ -25,6 +25,11 @@ bool esl_button_state_get(void)
     return !pin_set;
 }
 
+bool esl_button_button_get(void)
+{
+    return button_context.button_button;
+}
+
 void esl_button_gpiote_config(void)
 {  
     nrfx_gpiote_in_config_t config = NRFX_GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);

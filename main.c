@@ -49,13 +49,18 @@
 
 int main(void)
 {    
-    //esl_gpio_leds_init(); - use if you want BLINK_MODE_SIMPLE
-    hardware_init();
+#ifdef BLINK_MODE_SIMPLE_ENABLED
+    hardware_simple_init();
+#endif
+    
+#ifdef BLINK_MODE_SMOOTH_ENABLED
+    hardware_smooth_init();
+#endif
 
     NRF_LOG_INFO("Starting up the project");
     while (true)
     {
-        led_mode_by_button(BLINK_MODE_SMOOTH);
+        led_mode_by_button();
     
         LOG_BACKEND_USB_PROCESS();
         NRF_LOG_PROCESS();

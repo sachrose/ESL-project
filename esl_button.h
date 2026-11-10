@@ -15,14 +15,14 @@ typedef struct
 {
     uint8_t clicks_count;
     bool in_bouncing;
-    bool button_button;
+    volatile bool button_button;
 } button_context_t;
-
-extern button_context_t button_context;
 
 void esl_button_init(void);
 
 bool esl_button_state_get(void);
+
+bool esl_button_button_get(void);
 
 void esl_button_gpiote_config(void);
 

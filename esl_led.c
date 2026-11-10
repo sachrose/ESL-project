@@ -10,6 +10,17 @@
 static const uint8_t esl_led_list[ESL_LEDS_NUMBER] = ESL_LEDS_LIST;
 static const uint8_t blinks_num[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
 
+#ifdef BLINK_MODE_SIMPLE_ENABLED
+blink_context_t blink_context = 
+{
+    .delay_ms = 0,
+    .led_idx = 0,
+    .count = blinks_num[0],
+    .ready_to_count = true
+};
+#endif
+
+#ifdef BLINK_MODE_SMOOTH_ENABLED
 static nrfx_pwm_t pwm_0 = NRFX_PWM_INSTANCE(0);
 static nrf_pwm_values_common_t pwm_seq_0_values[ESL_PWM_LED_STEPS_ARR_SIZE];
 
@@ -21,14 +32,6 @@ static nrf_pwm_sequence_t pwm_seq_0 =
     .end_delay = 0
 };
 
-blink_context_t blink_context = 
-{
-    .delay_ms = 0,
-    .led_idx = 0,
-    .count = blinks_num[0],
-    .ready_to_count = true
-};
-
 smooth_blink_context_t smooth_blink_context = 
 {
     .systick_state.time = 0,
@@ -36,7 +39,9 @@ smooth_blink_context_t smooth_blink_context =
     .count = 0,
     .current_step = 0
 };
+#endif
 
+#ifdef BLINK_MODE_SIMPLE_ENABLED
 static void gpio_output_voltage_setup(void)
 {
     // Configure UICR_REGOUT0 register only if it is set to default value.
@@ -116,22 +121,6 @@ void esl_gpio_led_blinking_mode_device_id(void)
     } 
 }
 
-void esl_pwm_led_init(uint8_t led_pin)
-{   
-    nrfx_pwm_config_t pwm_0_cfg = ESL_PWM_LED_CONFIG(led_pin);
-    
-    nrfx_pwm_init(&pwm_0, &pwm_0_cfg, NULL); 
-}
-
-void esl_pwm_led_seq_values_init(void)
-{
-    for (uint16_t i = 0; i < ESL_PWM_LED_STEPS_ARR_SIZE; i++)
-    {
-        uint16_t value = (i <= ESL_PWM_LED_STEPS_ARR_SIZE / 2) ? i : (ESL_PWM_LED_STEPS_ARR_SIZE - 1 - i);
-        pwm_seq_0_values[i] = value * ESL_PWM_LED_ONE_STEP_DUTY;
-    }
-}
-
 void led_blink_iteration(void)
 {
     if (blink_context.delay_ms == 0)
@@ -141,7 +130,7 @@ void led_blink_iteration(void)
         blink_context.delay_ms = 500;
     }
     
-    while (blink_context.delay_ms > 0 && button_context.button_button)    
+    while (blink_context.delay_ms > 0 && esl_button_state_get())    
     {
         esl_delay_ms(1);
         blink_context.delay_ms--;
@@ -165,6 +154,36 @@ void led_blink_iteration(void)
 
 led_blink_iteration_end:
     return;
+}
+#endif
+
+#ifdef BLINK_MODE_SMOOTH_ENABLED
+void esl_pwm_led_init(uint8_t led_pin)
+{   
+    nrfx_pwm_config_t pwm_0_cfg =
+    {
+    .output_pins  = { led_pin | NRFX_PWM_PIN_INVERTED,                     \
+                      NRFX_PWM_PIN_NOT_USED,                               \
+                      NRFX_PWM_PIN_NOT_USED,                               \
+                      NRFX_PWM_PIN_NOT_USED },                             \
+    .irq_priority = NRFX_PWM_DEFAULT_CONFIG_IRQ_PRIORITY,                  \
+    .base_clock   = (nrf_pwm_clk_t)NRFX_PWM_DEFAULT_CONFIG_BASE_CLOCK,     \
+    .count_mode   = (nrf_pwm_mode_t)NRFX_PWM_DEFAULT_CONFIG_COUNT_MODE,    \
+    .top_value    = NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE,                     \
+    .load_mode    = (nrf_pwm_dec_load_t)NRFX_PWM_DEFAULT_CONFIG_LOAD_MODE, \
+    .step_mode    = (nrf_pwm_dec_step_t)NRFX_PWM_DEFAULT_CONFIG_STEP_MODE, \
+    };
+    
+    nrfx_pwm_init(&pwm_0, &pwm_0_cfg, NULL); 
+};
+
+void esl_pwm_led_seq_values_init(void)
+{
+    for (uint16_t i = 0; i < ESL_PWM_LED_STEPS_ARR_SIZE; i++)
+    {
+        uint16_t value = (i <= ESL_PWM_LED_STEPS_ARR_SIZE / 2) ? i : (ESL_PWM_LED_STEPS_ARR_SIZE - 1 - i);
+        pwm_seq_0_values[i] = value * ESL_PWM_LED_ONE_STEP_DUTY;
+    }
 }
 
 void led_smooth_blink_iteration(void)
@@ -197,3 +216,4 @@ void led_smooth_blink_iteration(void)
         }        
     }
 }
+#endif
