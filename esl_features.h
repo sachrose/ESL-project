@@ -4,17 +4,15 @@
 #include <stdint.h>
 #include "esl_led.h"
 
-#if defined(BLINK_MODE_SIMPLE_ENABLED) && defined(BLINK_MODE_SMOOTH_ENABLED)
-#error Choose only one mode in Makefile!
-#endif
+typedef enum
+{
+    VIEWING = 0,
+    EDITING_H = 1,
+    EDITING_S = 2,
+    EDITING_V = 3,
+} led_state_t;
 
-#ifdef BLINK_MODE_SIMPLE_ENABLED
-void hardware_simple_init(void);
-#endif
-
-#ifdef BLINK_MODE_SMOOTH_ENABLED
 void hardware_smooth_init(void);
-#endif
 
 void logs_init(void);
 

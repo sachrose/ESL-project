@@ -49,18 +49,12 @@
 
 int main(void)
 {    
-#ifdef BLINK_MODE_SIMPLE_ENABLED
-    hardware_simple_init();
-#endif
-    
-#ifdef BLINK_MODE_SMOOTH_ENABLED
     hardware_smooth_init();
-#endif
 
     NRF_LOG_INFO("Starting up the project");
     while (true)
     {
-        led_mode_by_button();
+        
     
         LOG_BACKEND_USB_PROCESS();
         NRF_LOG_PROCESS();

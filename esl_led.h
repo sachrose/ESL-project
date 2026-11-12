@@ -19,65 +19,26 @@
 #define ESL_DEVICE_ID {6, 6, 1, 3}
 #define ESL_LEDS_LIST { LED1_G, LED2_R, LED2_G, LED2_B }
 
-#ifdef BLINK_MODE_SIMPLE_ENABLED
-typedef struct
-{
-    uint16_t delay_ms;
-    uint8_t led_idx;
-    uint8_t count;
-    bool ready_to_count;    
-} blink_context_t;
-#endif
-
-#ifdef BLINK_MODE_SMOOTH_ENABLED
 #define ESL_PWM_LED_SEQ_STEPS           20
 #define ESL_PWM_LED_STEPS_ARR_SIZE      (ESL_PWM_LED_SEQ_STEPS & 1 ? ESL_PWM_LED_SEQ_STEPS : (ESL_PWM_LED_SEQ_STEPS + 1))
 #define ESL_PWM_LED_ONE_STEP_DUTY       (NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE / ESL_PWM_LED_SEQ_STEPS)
-#define ESL_PWM_LED_DUTY_DURATION_US    50000
+
+
+#define ESL_DEFAULT_HUE(a, b)   ((uint16_t)((360 * ((a) * 10 + (b)) + 50) / 100))
+#define ESL_DEFAULT_SATURATION  100
+#define ESL_DEFAULT_VALUE       100
 
 typedef struct
 {
-    nrfx_systick_state_t systick_state;
-    uint8_t led_idx;
-    uint8_t count;
-    uint8_t current_step;
-} smooth_blink_context_t;
-#endif
+    //volatile led_state_t state;
+    uint16_t hue;
+    uint8_t sat;
+    uint8_t val;
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+} hsv_context_t;
 
-#ifdef BLINK_MODE_SIMPLE_ENABLED
-void esl_gpio_leds_init(void);
-
-bool esl_gpio_led_state_get(uint32_t led_idx);
-
-void esl_gpio_led_invert(uint32_t led_idx);
-
-void esl_gpio_change_one_led_state(uint32_t led_idx, bool leds_active_state);
-
-void esl_gpio_change_all_leds_state(bool leds_active_state);
-
-void esl_gpio_led_blinking_mode_device_id(void);
-
-void led_blink_iteration(void);
-
-__STATIC_INLINE void esl_delay_ms(uint32_t ms_time)
-{
-    if (ms_time == 0)
-    {
-        return;
-    }
-
-    do {
-        NRFX_DELAY_US(1000);
-    } while (--ms_time);
-}
-#endif
-
-#ifdef BLINK_MODE_SMOOTH_ENABLED
-void esl_pwm_led_init(uint8_t led_pin);
-
-void esl_pwm_led_seq_values_init(void);
-
-void led_smooth_blink_iteration(void);
-#endif
+void esl_pwm_led_init(void);
 
 #endif
