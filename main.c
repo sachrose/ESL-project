@@ -46,15 +46,19 @@
 #include "nrf_log_backend_usb.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
+#include "cmsis_gcc.h"
 
 int main(void)
 {    
-    hardware_smooth_init();
+    hardware_init();
 
     NRF_LOG_INFO("Starting up the project");
     while (true)
     {
-        
+        __WFE();
+
+        __SEV();
+        __WFE();
     
         LOG_BACKEND_USB_PROCESS();
         NRF_LOG_PROCESS();

@@ -1,33 +1,63 @@
 #include "esl_button.h"
 #include "app_timer.h"
+#include "nrf_gpio.h"
+#include "nrf_gpiote.h"
+#include "nrfx_gpiote.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
-APP_TIMER_DEF(debounce);
-APP_TIMER_DEF(action);
+bool esl_button_state_get(void);
+
+void button_IRQHandler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action);
+
+void debounce_IRQHandler(void * p_context);
+
+void action_IRQHandler(void * p_context);
+
+void esl_fsm_button(button_event_t event);
+
+void handler_state_sleep(button_event_t event);
+
+void handler_state_1_click(button_event_t event);
+
+void handler_state_hold(button_event_t event);
+
+void handler_state_wait_click(button_event_t event);
+
+void handler_state_2_click(button_event_t event);
 
 static button_context_t button_context =
 {
+    .double_click_callback = NULL,
+    .hold_start_callback = NULL,
+    .hold_stop_callback = NULL,
     .state = BTN_STATE_SLEEP,
-    .in_bouncing = false,
-    .button_button = false
+    .in_bouncing = false
 };
 
-void esl_button_init(void)
+static button_state_handler_t btn_state_handlers[BTN_STATE_COUNT] =
 {
-    nrf_gpio_cfg_input(BUTTON, BUTTON_PULL);
+    handler_state_sleep,
+    handler_state_1_click,
+    handler_state_hold,
+    handler_state_wait_click,
+    handler_state_2_click
+};
+
+APP_TIMER_DEF(debounce);
+APP_TIMER_DEF(action);
+
+void apptimer2_init_for_button_handlers(void)
+{
+    app_timer_create(&debounce, APP_TIMER_MODE_SINGLE_SHOT, debounce_IRQHandler);   
+    app_timer_create(&action, APP_TIMER_MODE_SINGLE_SHOT, action_IRQHandler);   
 }
 
 bool esl_button_state_get(void)
 {
     bool pin_set = nrf_gpio_pin_read(BUTTON) ? true : false;
     return !pin_set;
-}
-
-bool esl_button_button_get(void)
-{
-    return button_context.button_button;
 }
 
 void esl_button_gpiote_config(void)
@@ -37,12 +67,6 @@ void esl_button_gpiote_config(void)
 
     nrfx_gpiote_in_init(BUTTON, &config, button_IRQHandler);
     nrfx_gpiote_in_event_enable(BUTTON, true);
-}
-
-void apptimer2_init_for_button_handlers(void)
-{
-    app_timer_create(&debounce, APP_TIMER_MODE_SINGLE_SHOT, debounce_IRQHandler);   
-    app_timer_create(&action, APP_TIMER_MODE_SINGLE_SHOT, action_IRQHandler);   
 }
 
 void button_IRQHandler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
@@ -73,50 +97,82 @@ void action_IRQHandler(void * p_context)
     esl_fsm_button(BTN_EVENT_TIMER_TIMEOUT);
 }
 
+void handler_state_sleep(button_event_t event)
+{
+    if (event == BTN_EVENT_PRESSED)
+    {
+        app_timer_start(action, APP_TIMER_TICKS(ACTION_TIME_MS), NULL);
+        button_context.state = BTN_STATE_1_CLICK;
+    }
+}
+
+void handler_state_1_click(button_event_t event)
+{
+    if (event == BTN_EVENT_RELEASED)
+    {
+        app_timer_stop(action);
+        app_timer_start(action, APP_TIMER_TICKS(ACTION_TIME_MS), NULL);
+        button_context.state = BTN_STATE_WAIT_CLICK;
+    }
+
+    if (event == BTN_EVENT_TIMER_TIMEOUT)
+    {
+        NRF_LOG_INFO("Hold: start!");
+        button_context.state = BTN_STATE_HOLD;
+        button_context.hold_start_callback();
+    }
+}
+
+void handler_state_hold(button_event_t event)
+{
+    if (event == BTN_EVENT_RELEASED)
+    {
+        NRF_LOG_INFO("Hold: stop!");
+        button_context.state = BTN_STATE_SLEEP;
+        button_context.hold_stop_callback();
+    }
+}
+
+void handler_state_wait_click(button_event_t event)
+{
+    if (event == BTN_EVENT_PRESSED)
+    {
+        app_timer_stop(action);
+        button_context.state = BTN_STATE_2_CLICK;
+    }
+    else if (event == BTN_EVENT_TIMER_TIMEOUT)
+    {
+        NRF_LOG_INFO("Single click registered!");
+        button_context.state = BTN_STATE_SLEEP;
+    }
+}
+
+void handler_state_2_click(button_event_t event)
+{
+    if (event == BTN_EVENT_RELEASED)
+    {
+        NRF_LOG_INFO("Double click registered!");
+        button_context.state = BTN_STATE_SLEEP;
+        button_context.double_click_callback();
+    }
+}
+
 void esl_fsm_button(button_event_t event)
 {
-    switch (button_context.state)
-    {
-        case BTN_STATE_SLEEP:
-            if (event == BTN_EVENT_PRESSED)
-            {
-                button_context.state = BTN_STATE_1_CLICK;
-            }
-            break;
+    btn_state_handlers[button_context.state](event);
+}
 
-        case BTN_STATE_1_CLICK:
-            if (event == BTN_EVENT_RELEASED)
-            {
-                app_timer_start(action, APP_TIMER_TICKS(DOUBLE_CLICK_TIME_MS), NULL);
-                button_context.state = BTN_STATE_WAIT_CLICK;
-            }
-            break;
+void register_double_click_callback(button_callback_t double_click_callback)
+{
+    button_context.double_click_callback = double_click_callback;
+}
 
-        case BTN_STATE_WAIT_CLICK:
-            if (event == BTN_EVENT_PRESSED)
-            {
-                app_timer_stop(action);
-                button_context.state = BTN_STATE_2_CLICK;
-            }
-            else if (event == BTN_EVENT_TIMER_TIMEOUT)
-            {
-                NRF_LOG_INFO("Single click registered!");
-                button_context.state = BTN_STATE_SLEEP;
-            }
-            break;
+void register_hold_start_callback(button_callback_t hold_start_callback)
+{
+    button_context.hold_start_callback = hold_start_callback;
+}
 
-        case BTN_STATE_2_CLICK:
-            if (event == BTN_EVENT_RELEASED)
-            {
-                button_context.button_button = !button_context.button_button;
-                NRF_LOG_INFO("Double click registered!");
-                //esl_fsm_led();
-                button_context.state = BTN_STATE_SLEEP;
-            }
-            break;
-
-        default:
-            button_context.state = BTN_STATE_SLEEP;
-            break;
-    }
+void register_hold_stop_callback(button_callback_t hold_stop_callback)
+{
+    button_context.hold_stop_callback = hold_stop_callback;
 }
