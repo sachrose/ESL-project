@@ -3,26 +3,29 @@
 
 #include <stdint.h>
 #include "nrf_gpio.h"
-#include "nrfx_glue.h"
 #include "app_timer.h"
-#include "nrf_pwm.h"
-#include "nrf_drv_pwm.h"
 
 #define ESL_DEVICE_ID   {6, 6, 1, 3}
 #define ESL_LEDS_NUMBER 4
 
-#define LED1_G         NRF_GPIO_PIN_MAP(0,6)
-#define LED2_R         NRF_GPIO_PIN_MAP(0,8)
-#define LED2_G         NRF_GPIO_PIN_MAP(1,9)
-#define LED2_B         NRF_GPIO_PIN_MAP(0,12)
+#define LED1_G NRF_GPIO_PIN_MAP(0,6)
+#define LED2_R NRF_GPIO_PIN_MAP(0,8)
+#define LED2_G NRF_GPIO_PIN_MAP(1,9)
+#define LED2_B NRF_GPIO_PIN_MAP(0,12)
 
-#define ESL_DEFAULT_HUE(a, b)   ((uint16_t)((360 * ((a) * 10 + (b)) + 50) / 100))
-#define ESL_DEFAULT_SATURATION  100
-#define ESL_DEFAULT_VALUE       100
+#define MAX_HUE 360
+#define MAX_SAT 100
+#define MAX_VAL 100
 
-#define ESL_PWM_TICK    APP_TIMER_TICKS(20)
-#define ESL_STEP_SLOW   20
-#define ESL_STEP_FAST   50
+#define ESL_DEFAULT_HUE(a, b)   ((uint16_t)((MAX_HUE * ((a) * 10 + (b)) + 50) / 100))
+#define ESL_DEFAULT_SATURATION  MAX_SAT
+#define ESL_DEFAULT_VALUE       MAX_VAL
+
+#define ESL_PWM_TICK  APP_TIMER_TICKS(20)
+#define ESL_STATUS_STEP_SLOW 20
+#define ESL_STATUS_STEP_FAST 50
+#define ESL_HSV_STEP         1
+
 
 typedef enum
 {
@@ -53,7 +56,10 @@ typedef struct
     uint16_t r;
     uint16_t g;
     uint16_t b;
-    bool phase_down;
+    bool status_phase_down;
+    bool h_phase_down;
+    bool s_phase_down;
+    bool v_phase_down;
 } led_color_context_t;
 
 typedef void (*led_state_handler_t)(led_event_t event);

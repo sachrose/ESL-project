@@ -1,6 +1,4 @@
-#include "nrf_assert.h"
 #include "app_timer.h"
-#include "nrf.h"
 #include "nrf_pwm.h"
 #include "nrfx_pwm.h"
 #include "esl_led.h"
@@ -11,6 +9,8 @@
 void esl_fsm_led(led_event_t event);
 
 void pwm_0_tick_handler(void * p_context);
+
+void smooth_value_cycle(uint16_t *value, bool *phase_down, uint16_t step, uint16_t top_value);
 
 void update_pwm(void);
 
@@ -32,7 +32,10 @@ static led_color_context_t led_color_context =
     .hue = ESL_DEFAULT_HUE(esl_device_id[2], esl_device_id[3]),
     .sat = ESL_DEFAULT_SATURATION,
     .val = ESL_DEFAULT_VALUE,
-    .phase_down = false
+    .status_phase_down = false,
+    .h_phase_down = false,
+    .s_phase_down = false,
+    .v_phase_down = false
 };
 
 static nrfx_pwm_t pwm_0 = NRFX_PWM_INSTANCE(0);
@@ -97,7 +100,7 @@ void esl_fsm_led(led_event_t event)
 
     led_state_handlers[led_color_context.state](event);
 
-    if (event == PWM_TICK)
+    if (event == PWM_TICK || event == CHANGE_MODE)
     {
         update_pwm();
     }
@@ -118,42 +121,36 @@ void stop_editing(void)
     esl_fsm_led(STOP_EDITING);
 }
 
-void count_status_duty(uint16_t step)
+void smooth_value_cycle(uint16_t *value, bool *phase_down, uint16_t step, uint16_t top_value)
 {
-    if (led_color_context.phase_down)
+    if (*phase_down)
     {
-        led_color_context.status_duty -= step;
-        if (led_color_context.status_duty <= step)
+        if (*value <= step)
         {
-            led_color_context.status_duty = 0;
-            led_color_context.phase_down = false;
-        }        
+            *value = 0;
+            *phase_down = false;
+        }
+        else
+        {
+            *value -= step;
+        }
     }
     else
     {
-        led_color_context.status_duty += step;
-        if (led_color_context.status_duty >= NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE)
+        if (*value + step >= top_value)
         {
-            led_color_context.status_duty = NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE;
-            led_color_context.phase_down = true;
+            *value = top_value;
+            *phase_down = true;
         }
-    }    
+        else
+        {
+            *value += step;
+        }
+    }
 }
 
 void update_pwm(void)
 {
-    //Status LED
-    if (led_color_context.state == EDITING_H)
-    {
-        count_status_duty(ESL_STEP_SLOW);
-    }
-
-    if (led_color_context.state == EDITING_S)
-    {
-        count_status_duty(ESL_STEP_FAST);
-    }
-    
-    //RGB LED
     uint32_t r, g, b;
     
     if (led_color_context.sat == 0) 
@@ -206,21 +203,30 @@ hsv_to_rgb_end:
 
 void esl_fsm_viewing_state(led_event_t event)
 {
-    app_timer_stop(pwm_0_tick);
     led_color_context.status_duty = 0;
-    pwm_0_seq_values.channel_0 = led_color_context.status_duty;
 }
 
 void esl_fsm_editing_h_state(led_event_t event)
-{    
+{        
     if (event == START_EDITING || event == STOP_EDITING)
     {
         led_color_context.event = event;
         NRF_LOG_INFO("Edit H event: %d", event);
     }
-    else if (event == PWM_TICK && led_color_context.event == START_EDITING)
+    else if (event == PWM_TICK)
     {
-        led_color_context.hue = (led_color_context.hue + 1) % 360;
+        smooth_value_cycle(&led_color_context.status_duty,
+                           &led_color_context.status_phase_down,
+                           ESL_STATUS_STEP_SLOW,
+                           NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE);
+        
+        if (led_color_context.event == START_EDITING)
+        {
+            smooth_value_cycle(&led_color_context.hue,
+                           &led_color_context.h_phase_down,
+                           ESL_HSV_STEP,
+                           MAX_HUE);
+        }
     }
 }
 
@@ -231,9 +237,21 @@ void esl_fsm_editing_s_state(led_event_t event)
         led_color_context.event = event;
         NRF_LOG_INFO("Edit H event: %d", event);
     }
-    else if (event == PWM_TICK && led_color_context.event == START_EDITING)
+    else if (event == PWM_TICK)
     {
-        led_color_context.sat = (led_color_context.sat + 1) % 101;
+        smooth_value_cycle(&led_color_context.status_duty,
+                           &led_color_context.status_phase_down,
+                           ESL_STATUS_STEP_FAST,
+                           NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE);
+
+        if (led_color_context.event == START_EDITING)
+        {
+            smooth_value_cycle(&led_color_context.sat,
+                           &led_color_context.s_phase_down,
+                           ESL_HSV_STEP,
+                           MAX_SAT);
+        }
+        
     }
 }
 
@@ -248,6 +266,9 @@ void esl_fsm_editing_v_state(led_event_t event)
     }
     else if (event == PWM_TICK && led_color_context.event == START_EDITING)
     {
-        led_color_context.val = (led_color_context.val + 1) % 101;
+        smooth_value_cycle(&led_color_context.val,
+                           &led_color_context.v_phase_down,
+                           ESL_HSV_STEP,
+                           MAX_VAL);
     }
 }
