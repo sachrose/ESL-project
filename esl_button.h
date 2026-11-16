@@ -6,10 +6,10 @@
 #define BUTTON          NRF_GPIO_PIN_MAP(1,6)
 #define BUTTON_PULL     NRF_GPIO_PIN_PULLUP
 
-#define BUTTON_ACTIVE_STATE   0
+#define BUTTON_ACTIVE_STATE 0
 
-#define DEBOUNCE_TIME_MS      50
-#define ACTION_TIME_MS  500
+#define DEBOUNCE_TIME_MS    50
+#define ACTION_TIME_MS      500
 
 typedef enum
 {

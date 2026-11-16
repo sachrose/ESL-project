@@ -20,7 +20,7 @@ void hardware_init(void)
     esl_button_gpiote_config();
     NRF_LOG_DEBUG("Init GPIOTE - End");
 
-    register_double_click_callback(esl_led_state_increment);
+    register_double_click_callback(change_mode);
     register_hold_start_callback(start_editing);
     register_hold_stop_callback(stop_editing);
     NRF_LOG_DEBUG("Init button - End");

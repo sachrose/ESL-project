@@ -17,17 +17,17 @@ void action_IRQHandler(void * p_context);
 
 void esl_fsm_button(button_event_t event);
 
-void handler_state_sleep(button_event_t event);
+void state_sleep_handler(button_event_t event);
 
-void handler_state_1_click(button_event_t event);
+void state_1_click_handler(button_event_t event);
 
-void handler_state_hold(button_event_t event);
+void state_hold_handler(button_event_t event);
 
-void handler_state_wait_click(button_event_t event);
+void state_wait_click_handler(button_event_t event);
 
-void handler_state_2_click(button_event_t event);
+void state_2_click_handler(button_event_t event);
 
-static button_context_t button_context =
+volatile static button_context_t button_context =
 {
     .double_click_callback = NULL,
     .hold_start_callback = NULL,
@@ -38,11 +38,11 @@ static button_context_t button_context =
 
 static button_state_handler_t btn_state_handlers[BTN_STATE_COUNT] =
 {
-    handler_state_sleep,
-    handler_state_1_click,
-    handler_state_hold,
-    handler_state_wait_click,
-    handler_state_2_click
+    state_sleep_handler,
+    state_1_click_handler,
+    state_hold_handler,
+    state_wait_click_handler,
+    state_2_click_handler
 };
 
 APP_TIMER_DEF(debounce);
@@ -97,7 +97,12 @@ void action_IRQHandler(void * p_context)
     esl_fsm_button(BTN_EVENT_TIMER_TIMEOUT);
 }
 
-void handler_state_sleep(button_event_t event)
+void esl_fsm_button(button_event_t event)
+{
+    btn_state_handlers[button_context.state](event);
+}
+
+void state_sleep_handler(button_event_t event)
 {
     if (event == BTN_EVENT_PRESSED)
     {
@@ -106,7 +111,7 @@ void handler_state_sleep(button_event_t event)
     }
 }
 
-void handler_state_1_click(button_event_t event)
+void state_1_click_handler(button_event_t event)
 {
     if (event == BTN_EVENT_RELEASED)
     {
@@ -123,7 +128,7 @@ void handler_state_1_click(button_event_t event)
     }
 }
 
-void handler_state_hold(button_event_t event)
+void state_hold_handler(button_event_t event)
 {
     if (event == BTN_EVENT_RELEASED)
     {
@@ -133,7 +138,7 @@ void handler_state_hold(button_event_t event)
     }
 }
 
-void handler_state_wait_click(button_event_t event)
+void state_wait_click_handler(button_event_t event)
 {
     if (event == BTN_EVENT_PRESSED)
     {
@@ -147,7 +152,7 @@ void handler_state_wait_click(button_event_t event)
     }
 }
 
-void handler_state_2_click(button_event_t event)
+void state_2_click_handler(button_event_t event)
 {
     if (event == BTN_EVENT_RELEASED)
     {
@@ -155,11 +160,6 @@ void handler_state_2_click(button_event_t event)
         button_context.state = BTN_STATE_SLEEP;
         button_context.double_click_callback();
     }
-}
-
-void esl_fsm_button(button_event_t event)
-{
-    btn_state_handlers[button_context.state](event);
 }
 
 void register_double_click_callback(button_callback_t double_click_callback)

@@ -6,25 +6,25 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
-void esl_fsm_led(led_event_t event);
-
 void pwm_0_tick_handler(void * p_context);
 
-void smooth_value_cycle(uint16_t *value, bool *phase_down, uint16_t step, uint16_t top_value);
+void smooth_value_cycle(volatile uint16_t *value, volatile bool *phase_down, uint16_t step, uint16_t top_value);
 
 void update_pwm(void);
 
-void esl_fsm_viewing_state(led_event_t event);
+void esl_fsm_led(led_event_t event);
 
-void esl_fsm_editing_h_state(led_event_t event);
+void state_viewing_handler(led_event_t event);
 
-void esl_fsm_editing_s_state(led_event_t event);
+void state_editing_h_handler(led_event_t event);
 
-void esl_fsm_editing_v_state(led_event_t event);
+void state_editing_s_handler(led_event_t event);
+
+void state_editing_v_handler(led_event_t event);
 
 static const uint16_t esl_device_id[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
 
-static led_color_context_t led_color_context =
+volatile static led_color_context_t led_color_context =
 {
     .state = VIEWING,
     .event = STOP_EDITING,
@@ -51,10 +51,10 @@ static nrf_pwm_sequence_t seq_0 =
 
 static led_state_handler_t led_state_handlers[LED_STATE_COUNT] =
 {
-    esl_fsm_viewing_state,
-    esl_fsm_editing_h_state,
-    esl_fsm_editing_s_state,
-    esl_fsm_editing_v_state
+    state_viewing_handler,
+    state_editing_h_handler,
+    state_editing_s_handler,
+    state_editing_v_handler
 };
 
 APP_TIMER_DEF(pwm_0_tick);
@@ -75,38 +75,7 @@ void esl_pwm_led_config(void)
     nrfx_pwm_simple_playback(&pwm_0, &seq_0, 1, NRFX_PWM_FLAG_LOOP);
 }
 
-void pwm_0_tick_handler(void * p_context)
-{
-    esl_fsm_led(PWM_TICK);
-}
-
-void esl_fsm_led(led_event_t event)
-{
-    if (event == CHANGE_MODE)
-    {
-        led_state_t last_state = led_color_context.state;
-        led_color_context.state = (led_color_context.state + 1) % LED_STATE_COUNT;
-        NRF_LOG_INFO("New state: %d", led_color_context.state);
-
-        if (last_state == VIEWING)
-        {
-            app_timer_start(pwm_0_tick, ESL_PWM_TICK, NULL);
-        }
-        else if (led_color_context.state == VIEWING)
-        {
-            app_timer_stop(pwm_0_tick);
-        }
-    } 
-
-    led_state_handlers[led_color_context.state](event);
-
-    if (event == PWM_TICK || event == CHANGE_MODE)
-    {
-        update_pwm();
-    }
-}
-
-void esl_led_state_increment(void)
+void change_mode(void)
 {
    esl_fsm_led(CHANGE_MODE);
 }
@@ -121,7 +90,12 @@ void stop_editing(void)
     esl_fsm_led(STOP_EDITING);
 }
 
-void smooth_value_cycle(uint16_t *value, bool *phase_down, uint16_t step, uint16_t top_value)
+void pwm_0_tick_handler(void * p_context)
+{
+    esl_fsm_led(PWM_TICK);
+}
+
+void smooth_value_cycle(volatile uint16_t *value, volatile bool *phase_down, uint16_t step, uint16_t top_value)
 {
     if (*phase_down)
     {
@@ -190,23 +164,47 @@ void update_pwm(void)
     }
     
 hsv_to_rgb_end:
-    led_color_context.r = (uint16_t)((r * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100);
-    led_color_context.g = (uint16_t)((g * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100);
-    led_color_context.b = (uint16_t)((b * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100);
 
     pwm_0_seq_values.channel_0 = led_color_context.status_duty;
-    pwm_0_seq_values.channel_1 = led_color_context.r;
-    pwm_0_seq_values.channel_2 = led_color_context.g;
-    pwm_0_seq_values.channel_3 = led_color_context.b;
+    pwm_0_seq_values.channel_1 = (uint16_t)((r * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100);
+    pwm_0_seq_values.channel_2 = (uint16_t)((g * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100);
+    pwm_0_seq_values.channel_3 = (uint16_t)((b * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100);
+    
     return;
 }
 
-void esl_fsm_viewing_state(led_event_t event)
+void esl_fsm_led(led_event_t event)
+{
+    if (event == CHANGE_MODE)
+    {
+        led_state_t last_state = led_color_context.state;
+        led_color_context.state = (led_color_context.state + 1) % LED_STATE_COUNT;
+        NRF_LOG_INFO("New state: %d", led_color_context.state);
+
+        if (last_state == VIEWING)
+        {
+            app_timer_start(pwm_0_tick, ESL_PWM_TICK, NULL);
+        }
+        else if (led_color_context.state == VIEWING)
+        {
+            app_timer_stop(pwm_0_tick);
+        }
+    } 
+
+    led_state_handlers[led_color_context.state](event);
+
+    if (event == PWM_TICK || event == CHANGE_MODE)
+    {
+        update_pwm();
+    }
+}
+
+void state_viewing_handler(led_event_t event)
 {
     led_color_context.status_duty = 0;
 }
 
-void esl_fsm_editing_h_state(led_event_t event)
+void state_editing_h_handler(led_event_t event)
 {        
     if (event == START_EDITING || event == STOP_EDITING)
     {
@@ -230,7 +228,7 @@ void esl_fsm_editing_h_state(led_event_t event)
     }
 }
 
-void esl_fsm_editing_s_state(led_event_t event)
+void state_editing_s_handler(led_event_t event)
 {
     if (event == START_EDITING || event == STOP_EDITING)
     {
@@ -255,7 +253,7 @@ void esl_fsm_editing_s_state(led_event_t event)
     }
 }
 
-void esl_fsm_editing_v_state(led_event_t event)
+void state_editing_v_handler(led_event_t event)
 {
     led_color_context.status_duty = NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE;
 
