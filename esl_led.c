@@ -6,22 +6,6 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
-void pwm_0_tick_handler(void * p_context);
-
-void smooth_value_cycle(volatile uint16_t *value, volatile bool *phase_down, uint16_t step, uint16_t top_value);
-
-void update_pwm(void);
-
-void esl_fsm_led(led_event_t event);
-
-void state_viewing_handler(led_event_t event);
-
-void state_editing_h_handler(led_event_t event);
-
-void state_editing_s_handler(led_event_t event);
-
-void state_editing_v_handler(led_event_t event);
-
 static const uint16_t esl_device_id[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
 
 volatile static led_color_context_t led_color_context =
@@ -49,54 +33,24 @@ static nrf_pwm_sequence_t seq_0 =
     .end_delay = 0
 };
 
-static led_state_handler_t led_state_handlers[LED_STATE_COUNT] =
+static char* led_state_names[LED_STATE_COUNT] = 
 {
-    state_viewing_handler,
-    state_editing_h_handler,
-    state_editing_s_handler,
-    state_editing_v_handler
+    [VIEWING] = "VIEWING",
+    [EDITING_H] = "EDITING_H",
+    [EDITING_S] = "EDITING_S",
+    [EDITING_V] = "EDITING_V"
 };
 
 APP_TIMER_DEF(pwm_0_tick);
 
-void esl_pwm_led_config(void)
-{          
-    pwm_0_cfg.load_mode = NRF_PWM_LOAD_INDIVIDUAL;
-    pwm_0_cfg.output_pins[0] = LED1_G | NRFX_PWM_PIN_INVERTED;
-    pwm_0_cfg.output_pins[1] = LED2_R | NRFX_PWM_PIN_INVERTED;
-    pwm_0_cfg.output_pins[2] = LED2_G | NRFX_PWM_PIN_INVERTED;
-    pwm_0_cfg.output_pins[3] = LED2_B | NRFX_PWM_PIN_INVERTED;
-
-    app_timer_create(&pwm_0_tick, APP_TIMER_MODE_REPEATED, pwm_0_tick_handler);
-
-    nrfx_pwm_init(&pwm_0, &pwm_0_cfg, NULL);
-    update_pwm();
-    
-    nrfx_pwm_simple_playback(&pwm_0, &seq_0, 1, NRFX_PWM_FLAG_LOOP);
-}
-
-void change_mode(void)
+static void smooth_value_cycle(volatile uint16_t *value, volatile bool *phase_down, uint16_t step, uint16_t top_value)
 {
-   esl_fsm_led(CHANGE_MODE);
-}
-
-void start_editing(void)
-{
-    esl_fsm_led(START_EDITING);
-}
-
-void stop_editing(void)
-{
-    esl_fsm_led(STOP_EDITING);
-}
-
-void pwm_0_tick_handler(void * p_context)
-{
-    esl_fsm_led(PWM_TICK);
-}
-
-void smooth_value_cycle(volatile uint16_t *value, volatile bool *phase_down, uint16_t step, uint16_t top_value)
-{
+    if (value == NULL || phase_down == NULL)
+    {
+        NRF_LOG_DEBUG("NULL pointer!");
+        goto smooth_value_cycle_end;
+    }
+        
     if (*phase_down)
     {
         if (*value <= step)
@@ -121,9 +75,12 @@ void smooth_value_cycle(volatile uint16_t *value, volatile bool *phase_down, uin
             *value += step;
         }
     }
+
+smooth_value_cycle_end:
+    return;
 }
 
-void update_pwm(void)
+static void update_pwm(void)
 {
     uint32_t r, g, b;
     
@@ -173,43 +130,16 @@ hsv_to_rgb_end:
     return;
 }
 
-void esl_fsm_led(led_event_t event)
-{
-    if (event == CHANGE_MODE)
-    {
-        led_state_t last_state = led_color_context.state;
-        led_color_context.state = (led_color_context.state + 1) % LED_STATE_COUNT;
-        NRF_LOG_INFO("New state: %d", led_color_context.state);
-
-        if (last_state == VIEWING)
-        {
-            app_timer_start(pwm_0_tick, ESL_PWM_TICK, NULL);
-        }
-        else if (led_color_context.state == VIEWING)
-        {
-            app_timer_stop(pwm_0_tick);
-        }
-    } 
-
-    led_state_handlers[led_color_context.state](event);
-
-    if (event == PWM_TICK || event == CHANGE_MODE)
-    {
-        update_pwm();
-    }
-}
-
-void state_viewing_handler(led_event_t event)
+static void state_viewing_handler(led_event_t event)
 {
     led_color_context.status_duty = 0;
 }
 
-void state_editing_h_handler(led_event_t event)
+static void state_editing_h_handler(led_event_t event)
 {        
     if (event == START_EDITING || event == STOP_EDITING)
     {
         led_color_context.event = event;
-        NRF_LOG_INFO("Edit H event: %d", event);
     }
     else if (event == PWM_TICK)
     {
@@ -228,12 +158,11 @@ void state_editing_h_handler(led_event_t event)
     }
 }
 
-void state_editing_s_handler(led_event_t event)
+static void state_editing_s_handler(led_event_t event)
 {
     if (event == START_EDITING || event == STOP_EDITING)
     {
         led_color_context.event = event;
-        NRF_LOG_INFO("Edit H event: %d", event);
     }
     else if (event == PWM_TICK)
     {
@@ -253,14 +182,13 @@ void state_editing_s_handler(led_event_t event)
     }
 }
 
-void state_editing_v_handler(led_event_t event)
+static void state_editing_v_handler(led_event_t event)
 {
     led_color_context.status_duty = NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE;
 
     if (event == START_EDITING || event == STOP_EDITING)
     {
         led_color_context.event = event;
-        NRF_LOG_INFO("Edit H event: %d", event);
     }
     else if (event == PWM_TICK && led_color_context.event == START_EDITING)
     {
@@ -269,4 +197,90 @@ void state_editing_v_handler(led_event_t event)
                            ESL_HSV_STEP,
                            MAX_VAL);
     }
+}
+
+static led_state_handler_t led_state_handlers[LED_STATE_COUNT] =
+{
+    state_viewing_handler,
+    state_editing_h_handler,
+    state_editing_s_handler,
+    state_editing_v_handler
+};
+
+static void esl_fsm_led(led_event_t event)
+{
+    if ( led_color_context.state == VIEWING && (event == START_EDITING || event == STOP_EDITING))
+    {
+        goto esl_fsm_led_end;
+    }
+    
+    if (event == CHANGE_MODE)
+    {
+        led_state_t last_state = led_color_context.state;
+        led_color_context.state = (led_color_context.state + 1) % LED_STATE_COUNT;
+        NRF_LOG_INFO("New state: %s", led_state_names[led_color_context.state]);
+
+        if (last_state == VIEWING)
+        {
+            app_timer_start(pwm_0_tick, ESL_PWM_TICK, NULL);            
+        }
+        else if (led_color_context.state == VIEWING)
+        {
+            app_timer_stop(pwm_0_tick);
+        }
+    }
+    else if (event == START_EDITING)
+    {
+        NRF_LOG_INFO("Start editing!")
+    }
+    else if (event == STOP_EDITING)
+    {
+        NRF_LOG_INFO("Stop editing! Current color: H = %d, S = %d, V = %d", led_color_context.hue, led_color_context.sat, led_color_context.val);
+    }
+
+    led_state_handlers[led_color_context.state](event);
+
+    if (event == PWM_TICK || event == CHANGE_MODE)
+    {
+        update_pwm();
+    }
+
+esl_fsm_led_end:
+    return;
+}
+
+static void pwm_0_tick_handler(void * p_context)
+{
+    esl_fsm_led(PWM_TICK);
+}
+
+void esl_pwm_led_config(void)
+{          
+    pwm_0_cfg.load_mode = NRF_PWM_LOAD_INDIVIDUAL;
+    pwm_0_cfg.output_pins[0] = LED1_G | NRFX_PWM_PIN_INVERTED;
+    pwm_0_cfg.output_pins[1] = LED2_R | NRFX_PWM_PIN_INVERTED;
+    pwm_0_cfg.output_pins[2] = LED2_G | NRFX_PWM_PIN_INVERTED;
+    pwm_0_cfg.output_pins[3] = LED2_B | NRFX_PWM_PIN_INVERTED;
+
+    app_timer_create(&pwm_0_tick, APP_TIMER_MODE_REPEATED, pwm_0_tick_handler);
+
+    nrfx_pwm_init(&pwm_0, &pwm_0_cfg, NULL);
+    update_pwm();
+    
+    nrfx_pwm_simple_playback(&pwm_0, &seq_0, 1, NRFX_PWM_FLAG_LOOP);
+}
+
+void change_mode(void)
+{
+   esl_fsm_led(CHANGE_MODE);
+}
+
+void start_editing(void)
+{
+    esl_fsm_led(START_EDITING);
+}
+
+void stop_editing(void)
+{
+    esl_fsm_led(STOP_EDITING);
 }

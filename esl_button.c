@@ -124,7 +124,11 @@ void state_1_click_handler(button_event_t event)
     {
         NRF_LOG_INFO("Hold: start!");
         button_context.state = BTN_STATE_HOLD;
-        button_context.hold_start_callback();
+
+        if (button_context.hold_start_callback != NULL)
+        {
+            button_context.hold_start_callback();
+        }        
     }
 }
 
@@ -134,7 +138,11 @@ void state_hold_handler(button_event_t event)
     {
         NRF_LOG_INFO("Hold: stop!");
         button_context.state = BTN_STATE_SLEEP;
-        button_context.hold_stop_callback();
+
+        if (button_context.hold_stop_callback != NULL)
+        {
+            button_context.hold_stop_callback();
+        }        
     }
 }
 
@@ -158,7 +166,11 @@ void state_2_click_handler(button_event_t event)
     {
         NRF_LOG_INFO("Double click registered!");
         button_context.state = BTN_STATE_SLEEP;
-        button_context.double_click_callback();
+
+        if (button_context.double_click_callback != NULL)
+        {
+            button_context.double_click_callback();
+        }        
     }
 }
 
