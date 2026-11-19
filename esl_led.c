@@ -1,219 +1,286 @@
-#include "nrf_assert.h"
-#include "nrf.h"
+#include "app_timer.h"
+#include "nrf_pwm.h"
+#include "nrfx_pwm.h"
 #include "esl_led.h"
-#include "esl_button.h"
-#include "nrfx_systick.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
-static const uint8_t esl_led_list[ESL_LEDS_NUMBER] = ESL_LEDS_LIST;
-static const uint8_t blinks_num[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
+static const uint16_t esl_device_id[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
 
-#ifdef BLINK_MODE_SIMPLE_ENABLED
-blink_context_t blink_context = 
+volatile static led_color_context_t led_color_context =
 {
-    .delay_ms = 0,
-    .led_idx = 0,
-    .count = blinks_num[0],
-    .ready_to_count = true
+    .state = VIEWING,
+    .event = STOP_EDITING,
+    .status_duty = 0,
+    .hue = ESL_DEFAULT_HUE(esl_device_id[2], esl_device_id[3]),
+    .sat = ESL_DEFAULT_SATURATION,
+    .val = ESL_DEFAULT_VALUE,
+    .status_phase_down = false,
+    .h_phase_down = false,
+    .s_phase_down = false,
+    .v_phase_down = false
 };
-#endif
 
-#ifdef BLINK_MODE_SMOOTH_ENABLED
 static nrfx_pwm_t pwm_0 = NRFX_PWM_INSTANCE(0);
-static nrf_pwm_values_common_t pwm_seq_0_values[ESL_PWM_LED_STEPS_ARR_SIZE];
-
-static nrf_pwm_sequence_t pwm_seq_0 = 
+static nrfx_pwm_config_t pwm_0_cfg = NRFX_PWM_DEFAULT_CONFIG;
+static nrf_pwm_values_individual_t pwm_0_seq_values;
+static nrf_pwm_sequence_t seq_0 =
 {
-    .values.p_common = pwm_seq_0_values,
-    .length = 1,
+    .values.p_individual = &pwm_0_seq_values,
+    .length = NRF_PWM_VALUES_LENGTH(pwm_0_seq_values),
     .repeats = 0,
     .end_delay = 0
 };
 
-smooth_blink_context_t smooth_blink_context = 
+static char* led_state_names[LED_STATE_COUNT] = 
 {
-    .systick_state.time = 0,
-    .led_idx = 3,
-    .count = 0,
-    .current_step = 0
+    [VIEWING] = "VIEWING",
+    [EDITING_H] = "EDITING_H",
+    [EDITING_S] = "EDITING_S",
+    [EDITING_V] = "EDITING_V"
 };
-#endif
 
-#ifdef BLINK_MODE_SIMPLE_ENABLED
-static void gpio_output_voltage_setup(void)
+APP_TIMER_DEF(pwm_0_tick);
+
+static void smooth_value_cycle(volatile uint16_t *value, volatile bool *phase_down, uint16_t step, uint16_t top_value)
 {
-    // Configure UICR_REGOUT0 register only if it is set to default value.
-    if ((NRF_UICR->REGOUT0 & UICR_REGOUT0_VOUT_Msk) ==
-        (UICR_REGOUT0_VOUT_DEFAULT << UICR_REGOUT0_VOUT_Pos))
+    if (value == NULL || phase_down == NULL)
     {
-        NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
-        while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
-
-        NRF_UICR->REGOUT0 = (NRF_UICR->REGOUT0 & ~((uint32_t)UICR_REGOUT0_VOUT_Msk)) |
-                            (UICR_REGOUT0_VOUT_3V0 << UICR_REGOUT0_VOUT_Pos);
-
-        NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
-        while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
-
-        // System reset is needed to update UICR registers.
-        NVIC_SystemReset();
+        NRF_LOG_DEBUG("NULL pointer!");
+        goto smooth_value_cycle_end;
     }
-}
-
-void esl_gpio_leds_init(void)
-{
-   if (NRF_POWER->MAINREGSTATUS &
-    (POWER_MAINREGSTATUS_MAINREGSTATUS_High << POWER_MAINREGSTATUS_MAINREGSTATUS_Pos))
+        
+    if (*phase_down)
     {
-        gpio_output_voltage_setup();
-    }
-    
-    uint32_t i;
-    for (i = 0; i < ESL_LEDS_NUMBER; ++i)
-    {
-        nrf_gpio_cfg_output(esl_led_list[i]);
-    }
-    esl_gpio_change_all_leds_state(!LEDS_ACTIVE_STATE);
-}
-
-bool esl_gpio_led_state_get(uint32_t led_idx)
-{
-    ASSERT(led_idx < ESL_LEDS_NUMBER);
-    bool pin_set = nrf_gpio_pin_out_read(esl_led_list[led_idx]) ? true : false;
-    return !pin_set;
-}
-
-void esl_gpio_led_invert(uint32_t led_idx)
-{
-    ASSERT(led_idx < ESL_LEDS_NUMBER);
-    nrf_gpio_pin_toggle(esl_led_list[led_idx]);
-}
-
-/* Use macro LEDS_ACTIVE_STATE to turn on the led */
-void esl_gpio_change_one_led_state(uint32_t led_idx, bool leds_active_state)
-{
-    ASSERT(led_idx < ESL_LEDS_NUMBER);
-    nrf_gpio_pin_write(esl_led_list[led_idx], leds_active_state);
-}
-
-/* Use macro LEDS_ACTIVE_STATE to turn on the leds */
-void esl_gpio_change_all_leds_state(bool leds_active_state)
-{
-    uint32_t i;
-
-    for (i = 0; i < ESL_LEDS_NUMBER; ++i)
+        if (*value <= step)
         {
-            esl_gpio_change_one_led_state(i, leds_active_state);
+            *value = 0;
+            *phase_down = false;
         }
-}
-
-void esl_gpio_led_blinking_mode_device_id(void)
-{
-    for (uint32_t i = 0; i < ESL_LEDS_NUMBER; i++)
-    {
-        for (uint8_t j = 0; j < (blinks_num[i] * 2); j++)
+        else
         {
-            esl_gpio_led_invert(i);
-            esl_delay_ms(500);
+            *value -= step;
         }
-    } 
-}
-
-void led_blink_iteration(void)
-{
-    if (blink_context.delay_ms == 0)
-    {
-        esl_gpio_led_invert(blink_context.led_idx);
-        blink_context.ready_to_count = !blink_context.ready_to_count;
-        blink_context.delay_ms = 500;
     }
-    
-    while (blink_context.delay_ms > 0 && esl_button_state_get())    
+    else
     {
-        esl_delay_ms(1);
-        blink_context.delay_ms--;
+        if (*value + step >= top_value)
+        {
+            *value = top_value;
+            *phase_down = true;
+        }
+        else
+        {
+            *value += step;
+        }
     }
 
-    if (blink_context.delay_ms > 0)
-    {
-        goto led_blink_iteration_end;
-    }  
-
-    if (blink_context.count > 0 && blink_context.ready_to_count)
-    {
-        blink_context.count--;
-    }
-    
-    if (blink_context.count == 0)
-    {
-        blink_context.led_idx = (blink_context.led_idx + 1) % ESL_LEDS_NUMBER;
-        blink_context.count = blinks_num[blink_context.led_idx];
-    }
-
-led_blink_iteration_end:
+smooth_value_cycle_end:
     return;
 }
-#endif
 
-#ifdef BLINK_MODE_SMOOTH_ENABLED
-void esl_pwm_led_init(uint8_t led_pin)
-{   
-    nrfx_pwm_config_t pwm_0_cfg =
-    {
-    .output_pins  = { led_pin | NRFX_PWM_PIN_INVERTED,                     \
-                      NRFX_PWM_PIN_NOT_USED,                               \
-                      NRFX_PWM_PIN_NOT_USED,                               \
-                      NRFX_PWM_PIN_NOT_USED },                             \
-    .irq_priority = NRFX_PWM_DEFAULT_CONFIG_IRQ_PRIORITY,                  \
-    .base_clock   = (nrf_pwm_clk_t)NRFX_PWM_DEFAULT_CONFIG_BASE_CLOCK,     \
-    .count_mode   = (nrf_pwm_mode_t)NRFX_PWM_DEFAULT_CONFIG_COUNT_MODE,    \
-    .top_value    = NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE,                     \
-    .load_mode    = (nrf_pwm_dec_load_t)NRFX_PWM_DEFAULT_CONFIG_LOAD_MODE, \
-    .step_mode    = (nrf_pwm_dec_step_t)NRFX_PWM_DEFAULT_CONFIG_STEP_MODE, \
-    };
+static void update_pwm(void)
+{
+    uint32_t r, g, b;
     
-    nrfx_pwm_init(&pwm_0, &pwm_0_cfg, NULL); 
+    if (led_color_context.sat == 0) 
+    {
+        r = g = b = led_color_context.val;
+        goto hsv_to_rgb_end;
+    }
+
+    uint16_t h = led_color_context.hue % 360;
+    uint8_t region = h / 60;
+    uint16_t remainder = h % 60;
+    
+    uint32_t p = (led_color_context.val * (100 - led_color_context.sat)) / 100;
+    uint32_t q = (led_color_context.val * (6000 - led_color_context.sat * remainder)) / 6000;
+    uint32_t t = (led_color_context.val * (6000 - led_color_context.sat * (60 - remainder))) / 6000;
+
+    switch (region)
+    {
+        case 0:
+            r = led_color_context.val; g = t; b = p;
+            break;
+        case 1:
+            r = q; g = led_color_context.val; b = p;
+            break;
+        case 2:
+            r = p; g = led_color_context.val; b = t;
+            break;
+        case 3:
+            r = p; g = q; b = led_color_context.val;
+            break;
+        case 4:
+            r = t; g = p; b = led_color_context.val;
+            break;
+        default:
+            r = led_color_context.val; g = p; b = q;
+            break;
+    }
+    
+hsv_to_rgb_end:
+
+    pwm_0_seq_values.channel_0 = led_color_context.status_duty;
+    pwm_0_seq_values.channel_1 = (uint16_t)((r * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100);
+    pwm_0_seq_values.channel_2 = (uint16_t)((g * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100);
+    pwm_0_seq_values.channel_3 = (uint16_t)((b * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100);
+    
+    return;
+}
+
+static void state_viewing_handler(led_event_t event)
+{
+    led_color_context.status_duty = 0;
+}
+
+static void state_editing_h_handler(led_event_t event)
+{        
+    if (event == START_EDITING || event == STOP_EDITING)
+    {
+        led_color_context.event = event;
+    }
+    else if (event == PWM_TICK)
+    {
+        smooth_value_cycle(&led_color_context.status_duty,
+                           &led_color_context.status_phase_down,
+                           ESL_STATUS_STEP_SLOW,
+                           NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE);
+        
+        if (led_color_context.event == START_EDITING)
+        {
+            smooth_value_cycle(&led_color_context.hue,
+                           &led_color_context.h_phase_down,
+                           ESL_HSV_STEP,
+                           MAX_HUE);
+        }
+    }
+}
+
+static void state_editing_s_handler(led_event_t event)
+{
+    if (event == START_EDITING || event == STOP_EDITING)
+    {
+        led_color_context.event = event;
+    }
+    else if (event == PWM_TICK)
+    {
+        smooth_value_cycle(&led_color_context.status_duty,
+                           &led_color_context.status_phase_down,
+                           ESL_STATUS_STEP_FAST,
+                           NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE);
+
+        if (led_color_context.event == START_EDITING)
+        {
+            smooth_value_cycle(&led_color_context.sat,
+                           &led_color_context.s_phase_down,
+                           ESL_HSV_STEP,
+                           MAX_SAT);
+        }
+        
+    }
+}
+
+static void state_editing_v_handler(led_event_t event)
+{
+    led_color_context.status_duty = NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE;
+
+    if (event == START_EDITING || event == STOP_EDITING)
+    {
+        led_color_context.event = event;
+    }
+    else if (event == PWM_TICK && led_color_context.event == START_EDITING)
+    {
+        smooth_value_cycle(&led_color_context.val,
+                           &led_color_context.v_phase_down,
+                           ESL_HSV_STEP,
+                           MAX_VAL);
+    }
+}
+
+static led_state_handler_t led_state_handlers[LED_STATE_COUNT] =
+{
+    state_viewing_handler,
+    state_editing_h_handler,
+    state_editing_s_handler,
+    state_editing_v_handler
 };
 
-void esl_pwm_led_seq_values_init(void)
+static void esl_fsm_led(led_event_t event)
 {
-    for (uint16_t i = 0; i < ESL_PWM_LED_STEPS_ARR_SIZE; i++)
+    if ( led_color_context.state == VIEWING && (event == START_EDITING || event == STOP_EDITING))
     {
-        uint16_t value = (i <= ESL_PWM_LED_STEPS_ARR_SIZE / 2) ? i : (ESL_PWM_LED_STEPS_ARR_SIZE - 1 - i);
-        pwm_seq_0_values[i] = value * ESL_PWM_LED_ONE_STEP_DUTY;
+        goto esl_fsm_led_end;
     }
-}
-
-void led_smooth_blink_iteration(void)
-{   
-    if (smooth_blink_context.count == 0)
+    
+    if (event == CHANGE_MODE)
     {
-        smooth_blink_context.led_idx = (smooth_blink_context.led_idx + 1) % ESL_LEDS_NUMBER;
-        smooth_blink_context.count = blinks_num[smooth_blink_context.led_idx];
+        led_state_t last_state = led_color_context.state;
+        led_color_context.state = (led_color_context.state + 1) % LED_STATE_COUNT;
+        NRF_LOG_INFO("New state: %s", led_state_names[led_color_context.state]);
 
-        nrfx_pwm_uninit(&pwm_0);
-        esl_pwm_led_init(esl_led_list[smooth_blink_context.led_idx]);
-        nrfx_systick_get(&smooth_blink_context.systick_state);
-        NRF_LOG_DEBUG("start blinking by LED_%d, count %d", smooth_blink_context.led_idx, smooth_blink_context.count);
-    }
-
-    if (smooth_blink_context.count > 0)
-    {
-        if (nrfx_systick_test(&smooth_blink_context.systick_state, ESL_PWM_LED_DUTY_DURATION_US))
+        if (last_state == VIEWING)
         {
-            smooth_blink_context.current_step = (smooth_blink_context.current_step + 1) % ESL_PWM_LED_STEPS_ARR_SIZE;
-            pwm_seq_0.values.p_common = &pwm_seq_0_values[smooth_blink_context.current_step];
-            
-            nrfx_systick_get(&smooth_blink_context.systick_state);
-            nrfx_pwm_simple_playback(&pwm_0, &pwm_seq_0, 1, NRFX_PWM_FLAG_LOOP);
-
-            if (smooth_blink_context.current_step == (ESL_PWM_LED_STEPS_ARR_SIZE - 1))
-            {
-                smooth_blink_context.count--;
-            }
-        }        
+            app_timer_start(pwm_0_tick, ESL_PWM_TICK, NULL);            
+        }
+        else if (led_color_context.state == VIEWING)
+        {
+            app_timer_stop(pwm_0_tick);
+        }
     }
+    else if (event == START_EDITING)
+    {
+        NRF_LOG_INFO("Start editing!")
+    }
+    else if (event == STOP_EDITING)
+    {
+        NRF_LOG_INFO("Stop editing! Current color: H = %d, S = %d, V = %d", led_color_context.hue, led_color_context.sat, led_color_context.val);
+    }
+
+    led_state_handlers[led_color_context.state](event);
+
+    if (event == PWM_TICK || event == CHANGE_MODE)
+    {
+        update_pwm();
+    }
+
+esl_fsm_led_end:
+    return;
 }
-#endif
+
+static void pwm_0_tick_handler(void * p_context)
+{
+    esl_fsm_led(PWM_TICK);
+}
+
+void esl_pwm_led_config(void)
+{          
+    pwm_0_cfg.load_mode = NRF_PWM_LOAD_INDIVIDUAL;
+    pwm_0_cfg.output_pins[0] = LED1_G | NRFX_PWM_PIN_INVERTED;
+    pwm_0_cfg.output_pins[1] = LED2_R | NRFX_PWM_PIN_INVERTED;
+    pwm_0_cfg.output_pins[2] = LED2_G | NRFX_PWM_PIN_INVERTED;
+    pwm_0_cfg.output_pins[3] = LED2_B | NRFX_PWM_PIN_INVERTED;
+
+    app_timer_create(&pwm_0_tick, APP_TIMER_MODE_REPEATED, pwm_0_tick_handler);
+
+    nrfx_pwm_init(&pwm_0, &pwm_0_cfg, NULL);
+    update_pwm();
+    
+    nrfx_pwm_simple_playback(&pwm_0, &seq_0, 1, NRFX_PWM_FLAG_LOOP);
+}
+
+void change_mode(void)
+{
+   esl_fsm_led(CHANGE_MODE);
+}
+
+void start_editing(void)
+{
+    esl_fsm_led(START_EDITING);
+}
+
+void stop_editing(void)
+{
+    esl_fsm_led(STOP_EDITING);
+}

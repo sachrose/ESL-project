@@ -46,21 +46,19 @@
 #include "nrf_log_backend_usb.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
+#include "cmsis_gcc.h"
 
 int main(void)
 {    
-#ifdef BLINK_MODE_SIMPLE_ENABLED
-    hardware_simple_init();
-#endif
-    
-#ifdef BLINK_MODE_SMOOTH_ENABLED
-    hardware_smooth_init();
-#endif
+    hardware_init();
 
     NRF_LOG_INFO("Starting up the project");
     while (true)
     {
-        led_mode_by_button();
+        __WFE();
+
+        __SEV();
+        __WFE();
     
         LOG_BACKEND_USB_PROCESS();
         NRF_LOG_PROCESS();
