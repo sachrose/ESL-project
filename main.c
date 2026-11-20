@@ -39,9 +39,7 @@
  */
 
 #include <stdbool.h>
-#include <stdint.h>
-#include "esl_led.h"
-#include "esl_button.h"
+#include "nrf_gpio.h"
 #include "esl_features.h"
 #include "nrf_log_backend_usb.h"
 #include "nrf_log.h"

@@ -2,8 +2,6 @@
 #define ESL_EEPROM_H
 
 #include "esl_types.h"
-//#include "nrfx_nvmc.h"
-//#include "nrf_dfu_types.h"
 
 #define BOOTLOADER_START_ADDR   0xE0000
 #define APP_DATA_PAGE_COUNT     3
@@ -14,8 +12,16 @@
 #define APP_DATA_END_ADDR       ((APP_DATA_START_ADDR) + (APP_DATA_AREA_SIZE))      // 0xE0000 (BOOTLOADER_START_ADDR)
 #define APP_DATA_EMPTY_WORD     0xFFFFFFFF 
 
-void app_data_load(hsv_word_t* hsv_word);
+typedef enum
+{
+    READ = 0,
+    WRITE = 1,
+    ERASE = 2,
+    EEPROM_STATE_COUNT = 3
+} eeprom_state_t;
 
-void app_data_save(hsv_word_t hsv_word);
+void state_read_handler(hsv_word_t* hsv_word);
+
+void state_write_handler(hsv_word_t hsv_word);
 
 #endif

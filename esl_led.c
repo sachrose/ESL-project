@@ -1,4 +1,3 @@
-#include "app_timer.h"
 #include "nrf_pwm.h"
 #include "nrfx_pwm.h"
 #include "esl_led.h"
@@ -44,38 +43,36 @@ static bool is_color_diff(hsv_color_t current, hsv_color_t new)
     return (current.hue != new.hue) || (current.sat != new.sat) || (current.val != new.val);
 }
 
-static void smooth_value_cycle(volatile uint16_t *value, volatile bool *phase_down, uint16_t step, uint16_t top_value)
+static void smooth_value_cycle(volatile void* value_ptr, bool is_uint16, volatile bool* phase_down, uint16_t step, uint16_t top_value)
 {
-    if (value == NULL || phase_down == NULL)
+    if (value_ptr == NULL || phase_down == NULL)
     {
         NRF_LOG_DEBUG("NULL pointer!");
         goto smooth_value_cycle_end;
     }
-        
+    
+    uint32_t value = is_uint16 ? *(volatile uint16_t*)value_ptr : *(volatile uint8_t*)value_ptr;
+    
     if (*phase_down)
     {
-        if (*value <= step)
-        {
-            *value = 0;
-            *phase_down = false;
-        }
-        else
-        {
-            *value -= step;
-        }
+        *phase_down = (value > step);
+        value = *phase_down ? (value - step) : 0;
     }
     else
     {
-        if (*value + step >= top_value)
-        {
-            *value = top_value;
-            *phase_down = true;
-        }
-        else
-        {
-            *value += step;
-        }
+        *phase_down = (value + step >= top_value);
+        value = *phase_down ? top_value : (value + step);
     }
+    
+
+    if (is_uint16)
+    {
+        *(volatile uint16_t*)value_ptr = (uint16_t)value;
+    }
+    else
+    {
+        *(volatile uint8_t*)value_ptr = (uint8_t)value;
+    } 
 
 smooth_value_cycle_end:
     return;
@@ -160,14 +157,14 @@ static void state_editing_h_handler(led_event_t event)
     }
     else if (event == PWM_TICK)
     {
-        smooth_value_cycle(&led_color_context.status_duty,
+        SMOOTH_VALUE_CYCLE(&led_color_context.status_duty,
                            &led_color_context.phase_down.status,
                            ESL_STATUS_STEP_SLOW,
                            NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE);
         
         if (led_color_context.event == START_EDITING)
         {
-            smooth_value_cycle(&led_color_context.new_color.hue,
+            SMOOTH_VALUE_CYCLE(&led_color_context.new_color.hue,
                                &led_color_context.phase_down.hue,
                                ESL_HSV_STEP,
                                MAX_HUE);
@@ -183,19 +180,18 @@ static void state_editing_s_handler(led_event_t event)
     }
     else if (event == PWM_TICK)
     {
-        smooth_value_cycle(&led_color_context.status_duty,
+        SMOOTH_VALUE_CYCLE(&led_color_context.status_duty,
                            &led_color_context.phase_down.status,
                            ESL_STATUS_STEP_FAST,
                            NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE);
 
         if (led_color_context.event == START_EDITING)
         {
-            smooth_value_cycle((uint16_t*)&led_color_context.new_color.sat,
+            SMOOTH_VALUE_CYCLE(&led_color_context.new_color.sat,
                                &led_color_context.phase_down.sat,
                                ESL_HSV_STEP,
                                MAX_SAT);
         }
-        
     }
 }
 
@@ -209,7 +205,7 @@ static void state_editing_v_handler(led_event_t event)
     }
     else if (event == PWM_TICK && led_color_context.event == START_EDITING)
     {
-        smooth_value_cycle((uint16_t*)&led_color_context.new_color.val,
+        SMOOTH_VALUE_CYCLE(&led_color_context.new_color.val,
                            &led_color_context.phase_down.val,
                            ESL_HSV_STEP,
                            MAX_VAL);

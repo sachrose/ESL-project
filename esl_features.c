@@ -2,7 +2,6 @@
 #include "esl_led.h"
 #include "esl_button.h"
 #include "esl_eeprom.h"
-#include "app_timer.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
@@ -25,8 +24,8 @@ void hardware_init(void)
         .sat = ESL_DEFAULT_SATURATION,
         .val = ESL_DEFAULT_VALUE
     };
-    app_data_load(&start_color);
-    esl_pwm_led_config(start_color, app_data_save);
+    state_read_handler(&start_color);
+    esl_pwm_led_config(start_color, state_write_handler);
     NRF_LOG_DEBUG("Init PWM - End");
 
     NRF_LOG_INFO("<hardware_init()");

@@ -2,7 +2,6 @@
 #define ESL_BUTTON_H
 
 #include <stdbool.h>
-#include "nrf_gpiote.h"
 
 #define BUTTON_ACTIVE_STATE 0
 #define BUTTON              NRF_GPIO_PIN_MAP(1,6)

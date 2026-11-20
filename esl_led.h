@@ -23,6 +23,9 @@
 #define ESL_STATUS_STEP_FAST    50
 #define ESL_HSV_STEP            1
 
+#define SMOOTH_VALUE_CYCLE(value_ptr, phase_ptr, step, top_value) \
+        smooth_value_cycle((value_ptr), (sizeof(*(value_ptr)) == sizeof(uint16_t)), (phase_ptr), (step), (top_value))
+
 typedef enum
 {
     VIEWING = 0,
