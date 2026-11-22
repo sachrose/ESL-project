@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 #include "esl_eeprom.h"
 #include "nrfx_nvmc.h"
 #include "nrf_log.h"
@@ -34,7 +35,7 @@ static void state_erase_handler(void)
 void state_read_handler(hsv_word_t* hsv_word)
 {    
     for (uint32_t addr = APP_DATA_START_ADDR; addr < APP_DATA_END_ADDR; addr += sizeof(hsv_word_t))
-    {
+    {        
         hsv_word_t* current_addr = (hsv_word_t*)addr;
 
         if (is_word_empty(current_addr))
@@ -63,11 +64,12 @@ void state_read_handler(hsv_word_t* hsv_word)
 
 void state_write_handler(hsv_word_t hsv_word)
 {
-    uint32_t word = (((uint32_t)hsv_word.val << 24)| ((uint32_t)hsv_word.sat << 16) | ((uint32_t)hsv_word.hue));
+    uint32_t word_to_write;
+    memcpy(&word_to_write, &hsv_word, sizeof(word_to_write));
 
-    if (nrfx_nvmc_word_writable_check(addr_to_write, word))
+    if (nrfx_nvmc_word_writable_check(addr_to_write, word_to_write))
     {
-        nrfx_nvmc_word_write(addr_to_write, word);
+        nrfx_nvmc_word_write(addr_to_write, word_to_write);
         while (!nrfx_nvmc_write_done_check()) {}
     }
 
