@@ -18,39 +18,43 @@ SRC_FILES += \
   $(PROJ_DIR)/esl_led.c \
   $(PROJ_DIR)/esl_button.c \
   $(PROJ_DIR)/esl_features.c \
+  $(PROJ_DIR)/esl_eeprom.c \
+  $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_nvmc.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_usbd.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_systick.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_power.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_pwm.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_default_backends.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_usb.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_str_formatter.c \
   $(SDK_ROOT)/components/libraries/atomic/nrf_atomic.c \
+  $(SDK_ROOT)/components/libraries/atomic_fifo/nrf_atfifo.c \
   $(SDK_ROOT)/components/libraries/memobj/nrf_memobj.c \
   $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
-  $(SDK_ROOT)/components/libraries/ringbuf/nrf_ringbuf.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
-  $(SDK_ROOT)/components/libraries/util/app_error.c \
-  $(SDK_ROOT)/components/libraries/log/src/nrf_log_default_backends.c \
-  $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
   $(SDK_ROOT)/components/libraries/util/app_error_weak.c \
+  $(SDK_ROOT)/components/libraries/util/app_error.c \
+  $(SDK_ROOT)/components/libraries/ringbuf/nrf_ringbuf.c \
+  $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
+  $(SDK_ROOT)/components/libraries/timer/drv_rtc.c \
   $(SDK_ROOT)/components/libraries/timer/app_timer2.c \
-  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_usb.c \
   $(SDK_ROOT)/components/libraries/usbd/app_usbd.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_usbd.c \
-  $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_systick.c \
-  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_clock.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
-  $(SDK_ROOT)/components/libraries/atomic_fifo/nrf_atfifo.c \
-  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_power.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_power.c \
   $(SDK_ROOT)/components/libraries/usbd/app_usbd_serial_num.c \
   $(SDK_ROOT)/components/libraries/usbd/class/cdc/acm/app_usbd_cdc_acm.c \
   $(SDK_ROOT)/components/libraries/usbd/app_usbd_core.c \
-  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
   $(SDK_ROOT)/components/libraries/usbd/app_usbd_string_desc.c \
-  $(SDK_ROOT)/components/libraries/log/src/nrf_log_str_formatter.c \
+  $(SDK_ROOT)/components/libraries/sortlist/nrf_sortlist.c \
+  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_power.c \
+  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_clock.c \
   $(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
-  $(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
-  $(SDK_ROOT)/components/libraries/timer/drv_rtc.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_pwm.c \
-  $(SDK_ROOT)/components/libraries/sortlist/nrf_sortlist.c
+  $(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c
+
+
 
 
 # Include folders common to all targets
@@ -185,7 +189,6 @@ $(DFU_PACKAGE): $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex
 	   --hw-version 52 \
 	   --application-version 1 \
 	   --sd-req 0x102 \
-	   --sd-id 0x102 \
 	   --application $< \
 	   $@
 

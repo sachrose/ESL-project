@@ -3,10 +3,9 @@
 
 #include <stdbool.h>
 
-#define BUTTON          NRF_GPIO_PIN_MAP(1,6)
-#define BUTTON_PULL     NRF_GPIO_PIN_PULLUP
-
 #define BUTTON_ACTIVE_STATE 0
+#define BUTTON              NRF_GPIO_PIN_MAP(1,6)
+#define BUTTON_PULL         NRF_GPIO_PIN_PULLUP
 
 #define DEBOUNCE_TIME_MS    50
 #define ACTION_TIME_MS      500
@@ -41,14 +40,6 @@ typedef struct
 
 typedef void (*button_state_handler_t)(button_event_t event);
 
-void apptimer2_init_for_button_handlers(void);
-
-void esl_button_gpiote_config(void);
-
-void register_double_click_callback(button_callback_t double_click_callback);
-
-void register_hold_start_callback(button_callback_t hold_callback);
-
-void register_hold_stop_callback(button_callback_t hold_callback);
+void esl_button_config(button_callback_t double_click_callback, button_callback_t hold_start_callback, button_callback_t hold_stop_callback);
 
 #endif

@@ -1,7 +1,8 @@
-#ifndef LED_H
-#define LED_H
+#ifndef ESL_LED_H
+#define ESL_LED_H
 
 #include <stdint.h>
+#include "esl_types.h"
 #include "nrf_gpio.h"
 #include "app_timer.h"
 
@@ -13,10 +14,6 @@
 #define LED2_G  NRF_GPIO_PIN_MAP(1,9)
 #define LED2_B  NRF_GPIO_PIN_MAP(0,12)
 
-#define MAX_HUE 360
-#define MAX_SAT 100
-#define MAX_VAL 100
-
 #define ESL_DEFAULT_HUE(a, b)   ((uint16_t)((MAX_HUE * ((a) * 10 + (b)) + 50) / 100))
 #define ESL_DEFAULT_SATURATION  MAX_SAT
 #define ESL_DEFAULT_VALUE       MAX_VAL
@@ -25,6 +22,9 @@
 #define ESL_STATUS_STEP_SLOW    20
 #define ESL_STATUS_STEP_FAST    50
 #define ESL_HSV_STEP            1
+
+#define SMOOTH_VALUE_CYCLE(value_ptr, phase_ptr, step, top_value) \
+        smooth_value_cycle((value_ptr), (sizeof(*(value_ptr)) == sizeof(uint16_t)), (phase_ptr), (step), (top_value))
 
 typedef enum
 {
@@ -46,21 +46,27 @@ typedef enum
 
 typedef struct
 {
-    volatile led_state_t state;
-    volatile led_event_t event;
-    uint16_t status_duty;
-    uint16_t hue;
-    uint16_t sat;
-    uint16_t val;
-    bool status_phase_down;
-    bool h_phase_down;
-    bool s_phase_down;
-    bool v_phase_down;
-} led_color_context_t;
+    bool status;
+    bool hue;
+    bool sat;
+    bool val;
+} led_phase_t;
 
 typedef void (*led_state_handler_t)(led_event_t event);
+typedef void (*led_save_color_callback_t)(hsv_color_t new_color);
 
-void esl_pwm_led_config(void);
+typedef struct
+{
+    led_save_color_callback_t save_color_callback;
+    volatile led_state_t state;
+    volatile led_event_t event;
+    volatile hsv_color_t current_color;
+    volatile hsv_color_t new_color;
+    volatile led_phase_t phase_down;
+    volatile uint16_t status_duty;
+} led_color_context_t;
+
+void esl_pwm_led_config(hsv_color_t start_color, led_save_color_callback_t save_color);
 
 void change_mode(void);
 
