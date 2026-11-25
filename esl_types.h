@@ -7,6 +7,8 @@
 #define MAX_SAT 100
 #define MAX_VAL 100
 
+#define LOG_TICK 10
+
 typedef struct
 {
     uint16_t hue;
