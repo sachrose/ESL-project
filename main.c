@@ -41,24 +41,29 @@
 #include <stdbool.h>
 #include "nrf_gpio.h"
 #include "esl_features.h"
-#include "nrf_log_backend_usb.h"
-#include "nrf_log.h"
-#include "nrf_log_ctrl.h"
 #include "cmsis_gcc.h"
 
 int main(void)
 {    
     hardware_init();
 
-    NRF_LOG_INFO("Starting up the project");
     while (true)
     {
         __WFE();
 
         __SEV();
         __WFE();
+
+#if ESTC_USB_CLI_ENABLED
+        while (app_usbd_event_queue_process())
+        {
+            /* Nothing to do */
+        }
+
+        //обработка команд
+#endif
     
-        LOG_BACKEND_USB_PROCESS();
-        NRF_LOG_PROCESS();
+        log_process();
     }
 }  
+

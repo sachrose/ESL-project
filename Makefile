@@ -98,8 +98,11 @@ OPT = -O3 -g3
 # Uncomment the line below to enable link time optimization
 #OPT += -flto
 
+ESTC_USB_CLI_ENABLED ?= 1
+
 # C flags common to all targets
 CFLAGS += $(OPT)
+CFLAGS += -DESTC_USB_CLI_ENABLED=$(ESTC_USB_CLI_ENABLED)
 CFLAGS += -DAPP_TIMER_V2
 CFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
 CFLAGS += -DBOARD_PCA10059
@@ -115,8 +118,6 @@ CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # keep every function in a separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin -fshort-enums
-#CFLAGS += -DBLINK_MODE_SIMPLE_ENABLED
-CFLAGS += -DBLINK_MODE_SMOOTH_ENABLED
 
 # C++ flags common to all targets
 CXXFLAGS += $(OPT)
@@ -195,3 +196,16 @@ $(DFU_PACKAGE): $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex
 dfu: $(DFU_PACKAGE)
 	@echo Performing DFU with generated package
 	nrfutil dfu usb-serial -pkg $< -p $(DFU_PORT) -b 115200
+
+
+  .........
+  # в секцию CFLAGS (например, сразу после #CFLAGS += -DBLINK_MODE_SMOOTH_ENABLED): Включение/отключение USB CLI при сборке (по умолчанию включено)
+ESTC_USB_CLI_ENABLED ?= 1
+CFLAGS += -DESTC_USB_CLI_ENABLED=$(ESTC_USB_CLI_ENABLED)
+
+
+
+
+
+
+

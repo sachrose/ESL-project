@@ -86,6 +86,20 @@ smooth_value_cycle_end:
     return;
 }
 
+static void set_hsv(uint16_t h, uint8_t s, uint8_t v)
+{
+    led_color_context.new_color.hue = h;
+    led_color_context.new_color.sat = s;
+    led_color_context.new_color.val = v;
+}
+
+static void set_rgb(uint32_t r, uint32_t g, uint32_t b)
+{
+    pwm_0_seq_values.channel_1 = (uint16_t)((r * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100);
+    pwm_0_seq_values.channel_2 = (uint16_t)((g * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100);
+    pwm_0_seq_values.channel_3 = (uint16_t)((b * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100); 
+}
+
 static void update_pwm(void)
 {
     uint32_t r, g, b;
@@ -128,10 +142,8 @@ static void update_pwm(void)
     
 hsv_to_rgb_end:
 
-    pwm_0_seq_values.channel_0 = led_color_context.status_duty;
-    pwm_0_seq_values.channel_1 = (uint16_t)((r * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100);
-    pwm_0_seq_values.channel_2 = (uint16_t)((g * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100);
-    pwm_0_seq_values.channel_3 = (uint16_t)((b * NRFX_PWM_DEFAULT_CONFIG_TOP_VALUE) / 100); 
+    //pwm_0_seq_values.channel_0 = led_color_context.status_duty;
+    set_rgb(r, g, b);
     
     return;
 }

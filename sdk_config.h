@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 - 2021, Nordic Semiconductor ASA !!!!!!!!!!!!!
+ * Copyright (c) 2017 - 2021, Nordic Semiconductor ASA
  *
  * All rights reserved.
  *
@@ -38,7 +38,7 @@
  *
  */
 
-
+fffffffffffffffff
 
 #ifndef SDK_CONFIG_H
 #define SDK_CONFIG_H
@@ -6823,7 +6823,7 @@
 // <e> NRF_QUEUE_ENABLED - nrf_queue - Queue module
 //==========================================================
 #ifndef NRF_QUEUE_ENABLED
-#define NRF_QUEUE_ENABLED 0
+#define NRF_QUEUE_ENABLED 1
 #endif
 // <q> NRF_QUEUE_CLI_CMDS  - Enable CLI commands specific to the module
  
@@ -6970,7 +6970,7 @@
  
 
 #ifndef NRF_CLI_ENABLED
-#define NRF_CLI_ENABLED 0
+#define NRF_CLI_ENABLED 1
 #endif
 
 // <o> NRF_CLI_ARGC_MAX - Maximum number of parameters passed to the command handler. 
