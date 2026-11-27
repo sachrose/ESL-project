@@ -3,9 +3,13 @@
 
 #include <stdint.h>
 
-#define MAX_HUE 360
-#define MAX_SAT 100
-#define MAX_VAL 100
+#define ESL_DEVICE_ID   {6, 6, 1, 3}
+
+#define MAX_HUE         359
+#define MAX_SAT         100
+#define MAX_VAL         100
+#define MAX_RGB         255
+#define MIN_COLOR_VALUE 0
 
 #define LOG_TICK 10
 

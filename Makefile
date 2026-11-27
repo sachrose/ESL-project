@@ -19,74 +19,76 @@ SRC_FILES += \
   $(PROJ_DIR)/esl_button.c \
   $(PROJ_DIR)/esl_features.c \
   $(PROJ_DIR)/esl_eeprom.c \
-  $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
-  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_nvmc.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_usbd.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_systick.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_power.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_pwm.c \
-  $(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
-  $(SDK_ROOT)/components/libraries/log/src/nrf_log_default_backends.c \
-  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_usb.c \
-  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
-  $(SDK_ROOT)/components/libraries/log/src/nrf_log_str_formatter.c \
   $(SDK_ROOT)/components/libraries/atomic/nrf_atomic.c \
   $(SDK_ROOT)/components/libraries/atomic_fifo/nrf_atfifo.c \
-  $(SDK_ROOT)/components/libraries/memobj/nrf_memobj.c \
-  $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
-  $(SDK_ROOT)/components/libraries/util/app_error_weak.c \
-  $(SDK_ROOT)/components/libraries/util/app_error.c \
-  $(SDK_ROOT)/components/libraries/ringbuf/nrf_ringbuf.c \
   $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
-  $(SDK_ROOT)/components/libraries/timer/drv_rtc.c \
-  $(SDK_ROOT)/components/libraries/timer/app_timer2.c \
-  $(SDK_ROOT)/components/libraries/usbd/app_usbd.c \
-  $(SDK_ROOT)/components/libraries/usbd/app_usbd_serial_num.c \
-  $(SDK_ROOT)/components/libraries/usbd/class/cdc/acm/app_usbd_cdc_acm.c \
-  $(SDK_ROOT)/components/libraries/usbd/app_usbd_core.c \
-  $(SDK_ROOT)/components/libraries/usbd/app_usbd_string_desc.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_usb.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_default_backends.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_str_formatter.c \
+  $(SDK_ROOT)/components/libraries/memobj/nrf_memobj.c \
+  $(SDK_ROOT)/components/libraries/ringbuf/nrf_ringbuf.c \
   $(SDK_ROOT)/components/libraries/sortlist/nrf_sortlist.c \
+  $(SDK_ROOT)/components/libraries/timer/app_timer2.c \
+  $(SDK_ROOT)/components/libraries/timer/drv_rtc.c \
+  $(SDK_ROOT)/components/libraries/usbd/app_usbd.c \
+  $(SDK_ROOT)/components/libraries/usbd/app_usbd_core.c \
+  $(SDK_ROOT)/components/libraries/usbd/app_usbd_serial_num.c \
+  $(SDK_ROOT)/components/libraries/usbd/app_usbd_string_desc.c \
+  $(SDK_ROOT)/components/libraries/usbd/class/cdc/acm/app_usbd_cdc_acm.c \
+  $(SDK_ROOT)/components/libraries/util/app_error.c \
+  $(SDK_ROOT)/components/libraries/util/app_error_weak.c \
+  $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
+  $(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
+  $(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
   $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_power.c \
   $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_clock.c \
-  $(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
-  $(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_nvmc.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_power.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_pwm.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_systick.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_usbd.c \
+  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
+  $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c
+  
 
-
-
+ # $(SDK_ROOT)/components/libraries/cli/nrf_cli.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
   $(PROJ_DIR) \
-  $(SDK_ROOT)/components/libraries/util \
-  $(SDK_ROOT)/components/toolchain/cmsis/include \
-  $(SDK_ROOT)/components/softdevice/mbr/headers \
   $(SDK_ROOT)/components/drivers_nrf/nrf_soc_nosd \
-  $(SDK_ROOT)/components/libraries/timer \
-  $(SDK_ROOT)/components/libraries/sortlist \
-  $(SDK_ROOT)/components/libraries/log \
-  $(SDK_ROOT)/components/libraries/log/src \
-  $(SDK_ROOT)/components/libraries/usbd \
-  $(SDK_ROOT)/components/libraries/ringbuf \
-  $(SDK_ROOT)/components/libraries/memobj \
-  $(SDK_ROOT)/components/libraries/balloc \
-  $(SDK_ROOT)/components/libraries/strerror \
   $(SDK_ROOT)/components/libraries/atomic \
   $(SDK_ROOT)/components/libraries/atomic_fifo \
+  $(SDK_ROOT)/components/libraries/balloc \
+  $(SDK_ROOT)/components/libraries/cli \
   $(SDK_ROOT)/components/libraries/delay \
-  $(SDK_ROOT)/components/libraries/usbd/class/cdc/acm \
-  $(SDK_ROOT)/components/libraries/usbd/class/cdc \
   $(SDK_ROOT)/components/libraries/experimental_section_vars \
-  $(SDK_ROOT)/modules/nrfx/drivers/include \
-  $(SDK_ROOT)/modules/nrfx/mdk \
-  $(SDK_ROOT)/modules/nrfx/hal \
-  $(SDK_ROOT)/modules/nrfx \
+  $(SDK_ROOT)/components/libraries/log \
+  $(SDK_ROOT)/components/libraries/log/src \
+  $(SDK_ROOT)/components/libraries/memobj \
+  $(SDK_ROOT)/components/libraries/queue \
+  $(SDK_ROOT)/components/libraries/ringbuf \
+  $(SDK_ROOT)/components/libraries/sortlist \
+  $(SDK_ROOT)/components/libraries/strerror \
+  $(SDK_ROOT)/components/libraries/timer \
+  $(SDK_ROOT)/components/libraries/usbd \
+  $(SDK_ROOT)/components/libraries/usbd/class/cdc \
+  $(SDK_ROOT)/components/libraries/usbd/class/cdc/acm \
+  $(SDK_ROOT)/components/libraries/util \
+  $(SDK_ROOT)/components/softdevice/mbr/headers \
+  $(SDK_ROOT)/components/toolchain/cmsis/include \
+  $(SDK_ROOT)/external/fprintf \
+  $(SDK_ROOT)/external/utf_converter \
   $(SDK_ROOT)/integration/nrfx \
   $(SDK_ROOT)/integration/nrfx/legacy \
-  $(SDK_ROOT)/external/fprintf \
-  $(SDK_ROOT)/external/utf_converter 
+  $(SDK_ROOT)/modules/nrfx \
+  $(SDK_ROOT)/modules/nrfx/drivers/include \
+  $(SDK_ROOT)/modules/nrfx/hal \
+  $(SDK_ROOT)/modules/nrfx/mdk
 
 # Libraries common to all targets
 LIB_FILES += \
@@ -101,8 +103,15 @@ OPT = -O3 -g3
 ESTC_USB_CLI_ENABLED ?= 1
 
 # C flags common to all targets
+ifeq ($(ESTC_USB_CLI_ENABLED),1)
+  CFLAGS += -DESTC_USB_CLI_ENABLED=1
+else
+  CFLAGS += -DESTC_USB_CLI_ENABLED=0
+  CFLAGS += -DNRF_CLI_ENABLED=0
+  CFLAGS += -DNRF_BALLOC_CLI_CMDS=0
+  CFLAGS += -DNRF_QUEUE_ENABLED=0
+endif
 CFLAGS += $(OPT)
-CFLAGS += -DESTC_USB_CLI_ENABLED=$(ESTC_USB_CLI_ENABLED)
 CFLAGS += -DAPP_TIMER_V2
 CFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
 CFLAGS += -DBOARD_PCA10059
@@ -196,16 +205,3 @@ $(DFU_PACKAGE): $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex
 dfu: $(DFU_PACKAGE)
 	@echo Performing DFU with generated package
 	nrfutil dfu usb-serial -pkg $< -p $(DFU_PORT) -b 115200
-
-
-  .........
-  # в секцию CFLAGS (например, сразу после #CFLAGS += -DBLINK_MODE_SMOOTH_ENABLED): Включение/отключение USB CLI при сборке (по умолчанию включено)
-ESTC_USB_CLI_ENABLED ?= 1
-CFLAGS += -DESTC_USB_CLI_ENABLED=$(ESTC_USB_CLI_ENABLED)
-
-
-
-
-
-
-

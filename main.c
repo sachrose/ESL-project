@@ -63,7 +63,7 @@ int main(void)
         //обработка команд
 #endif
     
-        log_process();
+        esl_log_process();
     }
 }  
 

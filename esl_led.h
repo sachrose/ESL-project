@@ -6,7 +6,6 @@
 #include "nrf_gpio.h"
 #include "app_timer.h"
 
-#define ESL_DEVICE_ID       {6, 6, 1, 3}
 #define ESL_LEDS_NUMBER     4
 
 #define LED1_G  NRF_GPIO_PIN_MAP(0,6)
@@ -37,11 +36,12 @@ typedef enum
 
 typedef enum
 {
-    CHANGE_MODE = 0,
-    START_EDITING = 1,
-    STOP_EDITING = 2,
-    PWM_TICK = 3,
-    LED_EVENT_COUNT = 4
+    VIEW_COLOR = 0,
+    CHANGE_MODE = 1,
+    START_EDITING = 2,
+    STOP_EDITING = 3,
+    PWM_TICK = 4,
+    LED_EVENT_COUNT = 5
 } led_event_t;
 
 typedef struct
@@ -68,10 +68,18 @@ typedef struct
 
 void esl_pwm_led_config(hsv_color_t start_color, led_save_color_callback_t save_color);
 
+void view_current_color(void);
+
 void change_mode(void);
 
 void start_editing(void);
 
 void stop_editing(void);
+
+#if ESTC_USB_CLI_ENABLED
+void rgb_from_cli(uint8_t r, uint8_t g, uint8_t b);
+
+void hsv_from_cli(uint16_t h, uint8_t s, uint8_t v);
+#endif
 
 #endif

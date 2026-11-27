@@ -7,13 +7,13 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
-volatile static button_context_t button_context =
+static button_context_t button_context =
 {
+    .single_click_callback = NULL,
     .double_click_callback = NULL,
-    .hold_start_callback = NULL,
-    .hold_stop_callback = NULL,
-    .state = BTN_STATE_SLEEP,
-    .in_bouncing = false
+    .hold_start_callback   = NULL,
+    .hold_stop_callback    = NULL,
+    .state                 = BTN_STATE_SLEEP,
 };
 
 APP_TIMER_DEF(debounce);
@@ -74,6 +74,11 @@ static void state_wait_click_handler(button_event_t event)
     {
         NRF_LOG_INFO("Single click registered!");
         button_context.state = BTN_STATE_SLEEP;
+
+        if (button_context.single_click_callback != NULL)
+        {
+            button_context.single_click_callback();
+        }    
     }
 }
 
@@ -113,16 +118,14 @@ static bool esl_button_state_get(void)
 
 static void button_IRQHandler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-    if (!button_context.in_bouncing)
-    {
-        app_timer_start(debounce, APP_TIMER_TICKS(DEBOUNCE_TIME_MS), NULL);
-        button_context.in_bouncing = true;
-    }
+    nrfx_gpiote_in_event_disable(BUTTON);
+
+    app_timer_start(debounce, APP_TIMER_TICKS(DEBOUNCE_TIME_MS), NULL);
 }
 
 static void debounce_IRQHandler(void * p_context)
 {
-    button_context.in_bouncing = false;
+    nrfx_gpiote_in_event_enable(BUTTON, true);
 
     if (esl_button_state_get())
     {
@@ -139,8 +142,19 @@ static void action_IRQHandler(void * p_context)
     esl_fsm_button(BTN_EVENT_TIMER_TIMEOUT);
 }
 
-void esl_button_config(button_callback_t double_click_callback, button_callback_t hold_start_callback, button_callback_t hold_stop_callback)
+void esl_button_config(button_callback_t single_click_callback,
+                       button_callback_t double_click_callback,
+                       button_callback_t hold_start_callback,
+                       button_callback_t hold_stop_callback)
 {  
+    button_context.single_click_callback = single_click_callback;
+    button_context.double_click_callback = double_click_callback;
+    button_context.hold_start_callback   = hold_start_callback;
+    button_context.hold_stop_callback    = hold_stop_callback;
+
+    app_timer_create(&debounce, APP_TIMER_MODE_SINGLE_SHOT, debounce_IRQHandler);   
+    app_timer_create(&action, APP_TIMER_MODE_SINGLE_SHOT, action_IRQHandler);  
+
     nrfx_gpiote_init();
     
     nrfx_gpiote_in_config_t config = NRFX_GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
@@ -148,11 +162,4 @@ void esl_button_config(button_callback_t double_click_callback, button_callback_
 
     nrfx_gpiote_in_init(BUTTON, &config, button_IRQHandler);
     nrfx_gpiote_in_event_enable(BUTTON, true);
-
-    app_timer_create(&debounce, APP_TIMER_MODE_SINGLE_SHOT, debounce_IRQHandler);   
-    app_timer_create(&action, APP_TIMER_MODE_SINGLE_SHOT, action_IRQHandler);   
-
-    button_context.double_click_callback = double_click_callback;
-    button_context.hold_start_callback = hold_start_callback;
-    button_context.hold_stop_callback = hold_stop_callback;
 }

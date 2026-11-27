@@ -31,15 +31,16 @@ typedef void (*button_callback_t)(void);
 
 typedef struct
 {
+    button_callback_t single_click_callback;
     button_callback_t double_click_callback;
     button_callback_t hold_start_callback;
     button_callback_t hold_stop_callback;
     button_state_t state;
-    bool in_bouncing;
 } button_context_t;
 
 typedef void (*button_state_handler_t)(button_event_t event);
 
-void esl_button_config(button_callback_t double_click_callback, button_callback_t hold_start_callback, button_callback_t hold_stop_callback);
+void esl_button_config(button_callback_t single_click_callback, button_callback_t double_click_callback,
+                       button_callback_t hold_start_callback, button_callback_t hold_stop_callback);
 
 #endif
