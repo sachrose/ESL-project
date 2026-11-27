@@ -7,19 +7,25 @@
 #include "nrf_log_backend_usb.h"
 #include "nrf_log_default_backends.h"
 
+static void log_init(void);
+
 static const uint16_t esl_device_id[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
 
 #if ESTC_USB_CLI_ENABLED
-APP_USBD_CDC_ACM_GLOBAL_DEF(usb_cdc_acm,
-                            usb_ev_handler,
-                            CDC_ACM_COMM_INTERFACE,
-                            CDC_ACM_DATA_INTERFACE,
-                            CDC_ACM_COMM_EPIN,
-                            CDC_ACM_DATA_EPIN,
-                            CDC_ACM_DATA_EPOUT,
-                            APP_USBD_CDC_COMM_PROTOCOL_NONE);
+static void cli_init(void);
+static void usb_ev_handler(app_usbd_class_inst_t const * p_inst, app_usbd_cdc_acm_user_event_t event);
 
-static cli_context_t cli_context
+static void cmd_rgb_handler(char** command, uint32_t count);
+static void cmd_hsv_handler(char** command, uint32_t count);
+static void cmd_help_handler(char** command, uint32_t count);
+
+static void esl_cli_print(char* string);
+static bool is_valid_number(char* string, uint32_t min, uint32_t max, uint32_t* out_value);
+
+static void esl_fsm_cli(cli_event_t event);
+static void cli_execute_command(char* command);
+
+static cli_context_t cli_context =
 {
     .state = SLEEP,
     .cmd_buf_idx = 0,
@@ -32,9 +38,9 @@ static const cli_command_t commands_list[] =
     {"RGB", "RGB <red> <green> <blue> - the device sets current color to specified one.", cmd_rgb_handler},
     {"HSV", "HSV <hue> <saturation> <value> - the same with RGB, but color is specified in HSV.", cmd_hsv_handler},
     {"help", "help - print information about supported commands.", cmd_help_handler}
-}
+};
 
-static const char* cli_errors_list[CLI_ERROR_COUNT] =
+static char* cli_errors_list[CLI_ERROR_COUNT] =
 {
     [UNKNOWN] = "Error: Unknown command!\r\n",
     [RANGE_255] = "Error: R, G, B must be numbers in range 0..255\r\n",
@@ -42,68 +48,22 @@ static const char* cli_errors_list[CLI_ERROR_COUNT] =
     [OVERFLOW_BUF] = "Error: Buffer overflow!\r\n"
 };
 
+APP_USBD_CDC_ACM_GLOBAL_DEF(usb_cdc_acm,
+                            usb_ev_handler,
+                            CDC_ACM_COMM_INTERFACE,
+                            CDC_ACM_DATA_INTERFACE,
+                            CDC_ACM_COMM_EPIN,
+                            CDC_ACM_DATA_EPIN,
+                            CDC_ACM_DATA_EPOUT,
+                            APP_USBD_CDC_COMM_PROTOCOL_NONE);
+
 static void cli_init(void)
 {
     app_usbd_class_inst_t const * class_cdc_acm = app_usbd_cdc_acm_class_inst_get(&usb_cdc_acm);
     app_usbd_class_append(class_cdc_acm);
 }
 
-static void esl_cli_print(char* string)
-{
-    uint32_t length = strlen(string);
-    if (length == 0)
-    {
-        return;
-    }
-
-    while (app_usbd_cdc_acm_write(&usb_cdc_acm, string, length) == NRF_ERROR_BUSY)
-    {
-        while (app_usbd_event_queue_process())
-        {
-            /* Nothing to do */
-        }
-    }
-}
-
-static bool is_valid_number(const char* string, uint32_t min, uint32_t max, uint32_t* out_value)
-{
-    bool result = false;
-    uint32_t value = 0;
-
-    if (string == NULL || out_value == NULL || string[0] == '\0' || min > max)
-    {
-        goto is_valid_end;
-    }
-    
-    for (uint32_t i = 0; string[i] != '\0'; i++)
-    {
-        if (string[i] < '0' || string[i] > '9')
-        {
-            goto is_valid_end;
-        }
-        
-        value = value * 10 + (uint32_t)(string[i] - '0');
-
-        if (value > max )
-        {
-            goto is_valid_end;
-        }      
-    }
-
-    if (value < min)
-    {
-        goto is_valid_end;
-    }
-    
-    *out_value = value;
-    result = true;
-
-is_valid_end:
-    return result;
-}
-
-static void usb_ev_handler(app_usbd_class_inst_t const * p_inst,
-                           app_usbd_cdc_acm_user_event_t event)
+static void usb_ev_handler(app_usbd_class_inst_t const* p_inst, app_usbd_cdc_acm_user_event_t event)
 {
     switch (event)
     {
@@ -123,60 +83,29 @@ static void usb_ev_handler(app_usbd_class_inst_t const * p_inst,
             break;
         }
         case APP_USBD_CDC_ACM_USER_EVT_RX_DONE:
-            ret_code_t ret;
-            do
-            {   
-                size_t size = app_usbd_cdc_acm_rx_size(&usb_cdc_acm);
-                if (size > 0)
-                {
-                    esl_fsm_cli(RX_CHAR);
-                }
-                ret = app_usbd_cdc_acm_read(&usb_cdc_acm, cli_context.rx_byte, READ_SIZE);
-            } while (ret == NRF_SUCCESS);
-        
+            {
+                ret_code_t ret;
+                do
+                {   
+                    size_t size = app_usbd_cdc_acm_rx_size(&usb_cdc_acm);
+                    if (size > 0)
+                    {
+                        esl_fsm_cli(RX_CHAR);
+                    }
+                    ret = app_usbd_cdc_acm_read(&usb_cdc_acm, cli_context.rx_byte, READ_SIZE);
+                } while (ret == NRF_SUCCESS);
+            }
         default:
             break;
     }
 }
 
-static void cli_execute_command(char* command)
-{
-    uint32_t count = 0;
-    char *all_args[ARGS_COUNT] = {NULL};
-    char *arg = strtok(command, " ");
-        
-    while (arg != NULL && count < ARGS_COUNT)
-    {
-        all_args[count++] = arg;
-        arg = strtok(NULL, " ");
-    }
-
-    if (count == 0)
-    {
-        goto cli_execute_command_end;
-    }
-
-    for (uint32_t i = 0; i < CMD_COUNT; i++)
-    {
-        if (strcmp(all_args[0], commands_list[i].name) == 0)
-        {
-            commands_list[i].handler(all_args, count);
-            goto cli_execute_command_end;
-        }
-    }
-
-    cli_print(cli_errors_list[UNKNOWN]);
-
-cli_execute_command_end:
-    return;
-}
-
-static void cmd_rgb_handler(char** command, int count)
+static void cmd_rgb_handler(char** command, uint32_t count)
 {
     if (count != 4)
     {
-        cli_print(cli_errors_list[UNKNOWN]);
-        goto cmd_rgb_end;
+        esl_cli_print(cli_errors_list[UNKNOWN]);
+        goto cmd_rgb_handler_end;
     }
 
     uint32_t r, g, b;
@@ -188,58 +117,112 @@ static void cmd_rgb_handler(char** command, int count)
     }
     else
     {
-        cli_print(cli_errors_list[RANGE_255]);
+        esl_cli_print(cli_errors_list[RANGE_255]);
     }
 
-cmd_rgb_end:
+cmd_rgb_handler_end:
     return;
 }
 
-static void cmd_hsv_handler(char** command, int count)
+static void cmd_hsv_handler(char** command, uint32_t count)
 {
     if (count != 4)
     {
-        cli_print(cli_errors_list[UNKNOWN]);
-        goto cmd_hsv_end;
+        esl_cli_print(cli_errors_list[UNKNOWN]);
+        goto cmd_hsv_handler_end;
     }
 
     uint32_t h, s, v;
-    if (is_valid_number(argv, MIN_COLOR_VALUE, MAX_HUE, &h) &&
-        is_valid_number(argv, MIN_COLOR_VALUE, MAX_SAT, &s) &&
-        is_valid_number(argv, MIN_COLOR_VALUE, MAX_VAL, &v))
+    if (is_valid_number(command[1], MIN_COLOR_VALUE, MAX_HUE, &h) &&
+        is_valid_number(command[2], MIN_COLOR_VALUE, MAX_SAT, &s) &&
+        is_valid_number(command[3], MIN_COLOR_VALUE, MAX_VAL, &v))
     {
         hsv_from_cli((uint16_t)h, (uint8_t)s, (uint8_t)v);        
     }
     else
     {
-        cli_print(cli_errors_list[RANGE_360]);
+        esl_cli_print(cli_errors_list[RANGE_360]);
     } 
 
-cmd_hsv_end:
+cmd_hsv_handler_end:
     return;
 }
 
-static void cmd_help_handler(char** command, int count)
+static void cmd_help_handler(char** command, uint32_t count)
 {
     if (count != 1)
     {
-        cli_print(cli_errors_list[UNKNOWN]);
-        goto cmd_help_end;
+        esl_cli_print(cli_errors_list[UNKNOWN]);
+        goto cmd_help_handler_end;
     }
 
-    cli_print("\t\tSupported commands:\r\n");
+    esl_cli_print("\t\tSupported commands:\r\n");
     for (uint32_t i = 0; i < CMD_COUNT; i++)
     {
-        cli_print("\t");
-        cli_print(commands_list[i].description);
-        cli_print("\r\n");
+        esl_cli_print("\t");
+        esl_cli_print(commands_list[i].command_description);
+        esl_cli_print("\r\n");
     }
 
-cmd_help_end:
+cmd_help_handler_end:
     return;
 }
 
-static esl_fsm_cli(cli_event_t event)
+static void esl_cli_print(char* string)
+{
+    uint32_t length = strlen(string);
+    if (length == 0)
+    {
+        return;
+    }
+
+    while (app_usbd_cdc_acm_write(&usb_cdc_acm, string, length) == NRF_ERROR_BUSY)
+    {
+        while (app_usbd_event_queue_process())
+        {
+            /* Nothing to do */
+        }
+    }
+}
+
+static bool is_valid_number(char* string, uint32_t min, uint32_t max, uint32_t* out_value)
+{
+    bool result = false;
+    uint32_t value = 0;
+
+    if (string == NULL || out_value == NULL || string[0] == '\0' || min > max)
+    {
+        goto is_valid_number_end;
+    }
+    
+    for (uint32_t i = 0; string[i] != '\0'; i++)
+    {
+        if (string[i] < '0' || string[i] > '9')
+        {
+            goto is_valid_number_end;
+        }
+        
+        value = value * 10 + (uint32_t)(string[i] - '0');
+
+        if (value > max )
+        {
+            goto is_valid_number_end;
+        }      
+    }
+
+    if (value < min)
+    {
+        goto is_valid_number_end;
+    }
+    
+    *out_value = value;
+    result = true;
+
+is_valid_number_end:
+    return result;
+}
+
+static void esl_fsm_cli(cli_event_t event)
 {
     switch (cli_context.state)
     {
@@ -268,7 +251,7 @@ static esl_fsm_cli(cli_event_t event)
                 {
                     cli_context.cmd_buf_idx = 0;
                     cli_context.cmd_buf_overflow = false;
-                    cli_print(cli_errors_list[OVERFLOW_BUF]);
+                    esl_cli_print(cli_errors_list[OVERFLOW_BUF]);
                 }
                 
                 if (ch == '\r' || ch == '\n')
@@ -327,7 +310,39 @@ static esl_fsm_cli(cli_event_t event)
     }
 }
 
-void esl_cli_process(char *cmd)
+static void cli_execute_command(char* command)
+{
+    uint32_t count = 0;
+    char *all_args[ARGS_COUNT] = {NULL};
+    char *arg = strtok(command, " ");
+        
+    while (arg != NULL && count < ARGS_COUNT)
+    {
+        all_args[count++] = arg;
+        arg = strtok(NULL, " ");
+    }
+
+    if (count == 0)
+    {
+        goto cli_execute_command_end;
+    }
+
+    for (uint32_t i = 0; i < CMD_COUNT; i++)
+    {
+        if (strcmp(all_args[0], commands_list[i].command_name) == 0)
+        {
+            commands_list[i].handler(all_args, count);
+            goto cli_execute_command_end;
+        }
+    }
+
+    esl_cli_print(cli_errors_list[UNKNOWN]);
+
+cli_execute_command_end:
+    return;
+}
+
+void esl_cli_process(char* command)
 {
     if (cli_context.cmd_ready)
     {
@@ -350,7 +365,7 @@ void hardware_init(void)
     NRF_LOG_INFO(">hardware_init()");
 
 #if ESTC_USB_CLI_ENABLED
-       cli_init(void)
+       cli_init();
 #endif
 
     app_timer_init();

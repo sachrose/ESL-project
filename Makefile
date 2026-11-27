@@ -53,9 +53,6 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_usbd.c \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
   $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c
-  
-
- # $(SDK_ROOT)/components/libraries/cli/nrf_cli.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -75,6 +72,7 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/sortlist \
   $(SDK_ROOT)/components/libraries/strerror \
   $(SDK_ROOT)/components/libraries/timer \
+  $(SDK_ROOT)/components/libraries/pwr_mgmt \
   $(SDK_ROOT)/components/libraries/usbd \
   $(SDK_ROOT)/components/libraries/usbd/class/cdc \
   $(SDK_ROOT)/components/libraries/usbd/class/cdc/acm \
@@ -102,15 +100,22 @@ OPT = -O3 -g3
 
 ESTC_USB_CLI_ENABLED ?= 1
 
-# C flags common to all targets
 ifeq ($(ESTC_USB_CLI_ENABLED),1)
   CFLAGS += -DESTC_USB_CLI_ENABLED=1
+  
+  SRC_FILES += \
+    $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
+    $(SDK_ROOT)/components/libraries/cli/nrf_cli.c \
+    $(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
+    $(SDK_ROOT)/components/libraries/queue/nrf_queue.c
 else
   CFLAGS += -DESTC_USB_CLI_ENABLED=0
   CFLAGS += -DNRF_CLI_ENABLED=0
   CFLAGS += -DNRF_BALLOC_CLI_CMDS=0
   CFLAGS += -DNRF_QUEUE_ENABLED=0
 endif
+
+# C flags common to all targets
 CFLAGS += $(OPT)
 CFLAGS += -DAPP_TIMER_V2
 CFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED

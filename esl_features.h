@@ -56,12 +56,12 @@ typedef struct
 
 typedef struct
 {
-    const char* command_name;
-    const char *command_description;
-    void (*handler)(char** command, int count);
+    char* command_name;
+    char* command_description;
+    void (*handler)(char** command, uint32_t count);
 } cli_command_t;
 
-void esl_cli_process(void);
+void esl_cli_process(char* command);
 #endif
 
 void hardware_init(void);
