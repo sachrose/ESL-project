@@ -61,7 +61,7 @@ int main(void)
             /* Nothing to do */
         }
 
-        //обработка команд
+        esl_cli_process();
 #endif
     
         esl_log_process();

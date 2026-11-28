@@ -25,6 +25,7 @@ static cli_context_t cli_context =
     .state = SLEEP,
     .cmd_buf_idx = 0,
     .cmd_buf_overflow = false,
+    .tx_done = false,
     .cmd_ready = false
 };
 
@@ -39,7 +40,7 @@ static char* cli_errors_list[CLI_ERROR_COUNT] =
 {
     [UNKNOWN] = "Error: Unknown command!\r\n",
     [RANGE_255] = "Error: R, G, B must be numbers in range 0..255\r\n",
-    [RANGE_360] ="Error: R, G, B must be numbers in range 0..360\r\n",
+    [RANGE_360] ="Error: H, S, V must be numbers in range 0..360, 0..100, 0..100\r\n",
     [OVERFLOW_BUF] = "Error: Buffer overflow!\r\n"
 };
 
@@ -74,6 +75,7 @@ static void usb_ev_handler(app_usbd_class_inst_t const* p_inst, app_usbd_cdc_acm
         }
         case APP_USBD_CDC_ACM_USER_EVT_TX_DONE:
         {
+            cli_context.tx_done = true;
             ESL_LOG_INFO("TX done");
             break;
         }
@@ -155,7 +157,6 @@ static void cmd_help_handler(char** command, uint32_t count)
     esl_cli_print("\t\tSupported commands:\r\n");
     for (uint32_t i = 0; i < CMD_COUNT; i++)
     {
-        esl_cli_print("\t");
         esl_cli_print(commands_list[i].command_description);
         esl_cli_print("\r\n");
     }
@@ -172,6 +173,7 @@ static void esl_cli_print(char* string)
         return;
     }
 
+    cli_context.tx_done = false;
     while (app_usbd_cdc_acm_write(&usb_cdc_acm, string, length) == NRF_ERROR_BUSY)
     {
         while (app_usbd_event_queue_process())
@@ -243,17 +245,10 @@ static void esl_fsm_cli(cli_event_t event)
             else if (event == RX_CHAR)
             {
                 char ch = *cli_context.rx_byte;
-
-                if (cli_context.cmd_buf_overflow)
-                {
-                    cli_context.cmd_buf_idx = 0;
-                    cli_context.cmd_buf_overflow = false;
-                    esl_cli_print(cli_errors_list[OVERFLOW_BUF]);
-                }
                 
                 if (ch == '\r' || ch == '\n')
                 {
-                    esl_cli_print("\r\n");
+                    app_usbd_cdc_acm_write(&usb_cdc_acm, "\r\n", 2);
                     if (cli_context.cmd_buf_idx > 0)
                     {
                         cli_context.cmd_buffer[cli_context.cmd_buf_idx] = '\0';
@@ -262,20 +257,20 @@ static void esl_fsm_cli(cli_event_t event)
                         cli_context.state = EXECUTION;
                     }
                 }
-                else if (ch == '\b')
+                else if (ch == '\b'|| ch == 0x7F)
                 {
                     if (cli_context.cmd_buf_idx > 0)
                     {
                         cli_context.cmd_buf_idx--;
                         cli_context.cmd_buf_overflow = false;
-                        esl_cli_print("\b \b");
+                        app_usbd_cdc_acm_write(&usb_cdc_acm, "\b \b", 3);
                     }
                 }
                 else 
                     if (!cli_context.cmd_ready && cli_context.cmd_buf_idx < (CMD_SIZE - 1))
                     {
                         cli_context.cmd_buffer[cli_context.cmd_buf_idx++] = ch;
-                        app_usbd_cdc_acm_read(&usb_cdc_acm, cli_context.rx_byte, READ_SIZE);
+                        app_usbd_cdc_acm_write(&usb_cdc_acm, cli_context.rx_byte, READ_SIZE);
                     }
                     else
                     {
@@ -283,28 +278,9 @@ static void esl_fsm_cli(cli_event_t event)
                     }
             }
             break;
-
-
-                    if (!cli_context.cmd_ready && cli_context.cmd_buf_idx < (CMD_SIZE - 1))
-                    {
-                        cli_context.cmd_buffer[cli_context.cmd_buf_idx++] = ch;
-                        // Формируем корректную строку из 1 символа для эха
-                        char echo_str[2] = {ch, '\0'};
-                        esl_cli_print(echo_str);
-                    }
-                    else
-                    {
-                        cli_context.cmd_buf_overflow = true;
-                    }
-
-
-
-
-
-
         }
         case EXECUTION:
-        {
+        {           
             if (event ==  PORT_CLOSE)
             {
                 cli_context.cmd_ready = false;
@@ -313,10 +289,20 @@ static void esl_fsm_cli(cli_event_t event)
             
             if (event ==  JUST_DO_IT)
             {
-                cli_execute_command(cli_context.cmd_buffer);
+                if (cli_context.cmd_buf_overflow)
+                {
+                    esl_cli_print(cli_errors_list[OVERFLOW_BUF]);
+                    cli_context.cmd_buf_idx = 0;
+                    cli_context.cmd_buf_overflow = false;
+                }
+                else
+                {
+                    cli_execute_command(cli_context.cmd_buffer);
+                }
+
                 cli_context.cmd_ready = false;
                 cli_context.state = RECEIVING;
-            }                                            
+            }                               
             break;
         }    
         default:
@@ -358,10 +344,11 @@ cli_execute_command_end:
     return;
 }
 
-void esl_cli_process(char* command)
+void esl_cli_process(void)
 {
     if (cli_context.cmd_ready)
     {
+        ESL_LOG_INFO("Executing command: %s", cli_context.cmd_buffer);
         esl_fsm_cli(JUST_DO_IT);
     }   
 }

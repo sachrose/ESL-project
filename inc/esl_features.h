@@ -51,7 +51,8 @@ typedef struct
     char cmd_buffer[CMD_SIZE];
     uint32_t cmd_buf_idx;
     bool cmd_buf_overflow;
-    bool cmd_ready;
+    volatile bool tx_done;
+    volatile bool cmd_ready;
 } cli_context_t;
 
 typedef struct
@@ -61,7 +62,7 @@ typedef struct
     void (*handler)(char** command, uint32_t count);
 } cli_command_t;
 
-void esl_cli_process(char* command);
+void esl_cli_process(void);
 #endif
 
 void hardware_init(void);
