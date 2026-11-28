@@ -15,10 +15,11 @@ $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
 SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
   $(PROJ_DIR)/main.c \
-  $(PROJ_DIR)/esl_led.c \
-  $(PROJ_DIR)/esl_button.c \
-  $(PROJ_DIR)/esl_features.c \
-  $(PROJ_DIR)/esl_eeprom.c \
+  $(PROJ_DIR)/src/esl_led.c \
+  $(PROJ_DIR)/src/esl_log.c \
+  $(PROJ_DIR)/src/esl_button.c \
+  $(PROJ_DIR)/src/esl_features.c \
+  $(PROJ_DIR)/src/esl_eeprom.c \
   $(SDK_ROOT)/components/libraries/atomic/nrf_atomic.c \
   $(SDK_ROOT)/components/libraries/atomic_fifo/nrf_atfifo.c \
   $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
@@ -57,6 +58,7 @@ SRC_FILES += \
 # Include folders common to all targets
 INC_FOLDERS += \
   $(PROJ_DIR) \
+  $(PROJ_DIR)/inc \
   $(SDK_ROOT)/components/drivers_nrf/nrf_soc_nosd \
   $(SDK_ROOT)/components/libraries/atomic \
   $(SDK_ROOT)/components/libraries/atomic_fifo \

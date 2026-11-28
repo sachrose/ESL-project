@@ -11,8 +11,6 @@
 #define MAX_RGB         255
 #define MIN_COLOR_VALUE 0
 
-#define LOG_TICK 10
-
 typedef struct
 {
     uint16_t hue;

@@ -1,10 +1,8 @@
 #include <stdint.h>
 #include <string.h>
+#include "esl_log.h"
 #include "esl_eeprom.h"
 #include "nrfx_nvmc.h"
-#include "nrf_log.h"
-#include "nrf_log_ctrl.h"
-#include "nrf_log_default_backends.h"
 
 static uint32_t addr_to_write = APP_DATA_START_ADDR;
 static hsv_word_t* last_word = NULL;
@@ -21,7 +19,7 @@ static bool is_word_valid(hsv_word_t* word)
 
 static void state_erase_handler(void)
 {
-    NRF_LOG_INFO("There is no empty space. Need to erase all app_data!");
+    esl_log_info("There is no empty space. Need to erase all app_data!");
 
     for (uint32_t i = 0; i < APP_DATA_PAGE_COUNT; i++)
     {
@@ -58,7 +56,7 @@ void state_read_handler(hsv_word_t* hsv_word)
     if (last_word != NULL)
     {
         *hsv_word = *last_word;
-        NRF_LOG_INFO("HUE was loaded from EEPROM");
+        esl_log_info("HUE was loaded from EEPROM");
     }
 }
 

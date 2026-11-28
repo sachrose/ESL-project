@@ -3,9 +3,7 @@
 #include "nrf_gpio.h"
 #include "nrf_gpiote.h"
 #include "nrfx_gpiote.h"
-#include "nrf_log.h"
-#include "nrf_log_ctrl.h"
-#include "nrf_log_default_backends.h"
+#include "esl_log.h"
 
 static button_context_t button_context =
 {
@@ -39,7 +37,7 @@ static void state_1_click_handler(button_event_t event)
 
     if (event == BTN_EVENT_TIMER_TIMEOUT)
     {
-        NRF_LOG_INFO("Hold: start!");
+        esl_log_info("Hold: start!");
         button_context.state = BTN_STATE_HOLD;
 
         if (button_context.hold_start_callback != NULL)
@@ -53,7 +51,7 @@ static void state_hold_handler(button_event_t event)
 {
     if (event == BTN_EVENT_RELEASED)
     {
-        NRF_LOG_INFO("Hold: stop!");
+        esl_log_info("Hold: stop!");
         button_context.state = BTN_STATE_SLEEP;
 
         if (button_context.hold_stop_callback != NULL)
@@ -72,7 +70,7 @@ static void state_wait_click_handler(button_event_t event)
     }
     else if (event == BTN_EVENT_TIMER_TIMEOUT)
     {
-        NRF_LOG_INFO("Single click registered!");
+        esl_log_info("Single click registered!");
         button_context.state = BTN_STATE_SLEEP;
 
         if (button_context.single_click_callback != NULL)
@@ -86,7 +84,7 @@ static void state_2_click_handler(button_event_t event)
 {
     if (event == BTN_EVENT_RELEASED)
     {
-        NRF_LOG_INFO("Double click registered!");
+        esl_log_info("Double click registered!");
         button_context.state = BTN_STATE_SLEEP;
 
         if (button_context.double_click_callback != NULL)

@@ -1,9 +1,7 @@
 #include "nrf_pwm.h"
 #include "nrfx_pwm.h"
 #include "esl_led.h"
-#include "nrf_log.h"
-#include "nrf_log_ctrl.h"
-#include "nrf_log_default_backends.h"
+#include "esl_log.h"
 
 static void esl_fsm_led(led_event_t event);
 
@@ -11,7 +9,7 @@ static led_color_context_t led_color_context =
 {
     .save_color_callback = NULL,
     .state = VIEWING,
-    .event = STOP_EDITING,
+    .event = VIEW_COLOR,
     .phase_down.status = false,
     .phase_down.hue = false,
     .phase_down.sat = false,
@@ -40,9 +38,9 @@ static char* led_state_names[LED_STATE_COUNT] =
 
 static char* led_event_names[LED_EVENT_COUNT] =
 {
-    [VIEW_COLOR] = "Current color: ",
+    [VIEW_COLOR] = "Current color:",
     [CHANGE_MODE] = "Change mode!",
-    [START_EDITING] = "Start editing!",
+    [START_EDITING] = "Editing!",
     [STOP_EDITING] = "Stop editing!",
     [PWM_TICK] = "PWM tick"
 };
@@ -178,7 +176,7 @@ static void smooth_value_cycle(volatile void* value_ptr,
 {   
     if (value_ptr == NULL || phase_down == NULL)
     {
-        NRF_LOG_DEBUG("NULL pointer!");
+        ESL_LOG_DEBUG("NULL pointer!");
         goto smooth_value_cycle_end;
     }
     
@@ -208,19 +206,14 @@ smooth_value_cycle_end:
     return;
 }
 
-static void log_current_color(void)
-{
-    NRF_LOG_INFO("Current color: H = %d, S = %d, V = %d",
-                 led_color_context.new_color.hue,
-                 led_color_context.new_color.sat,
-                 led_color_context.new_color.val);
-}
-
 static void state_viewing_handler(led_event_t event)
 {
     if (is_color_diff(led_color_context.current_color, led_color_context.new_color))
     {
-        log_current_color();
+        esl_log_color(led_event_names[led_color_context.event],
+                      led_color_context.new_color.hue,
+                      led_color_context.new_color.sat,
+                      led_color_context.new_color.val);
 
         led_color_context.current_color = led_color_context.new_color;
 
@@ -229,7 +222,7 @@ static void state_viewing_handler(led_event_t event)
             led_color_context.save_color_callback(led_color_context.new_color);
         }
 
-        NRF_LOG_INFO("New color saved!");
+        ESL_LOG_INFO("New color saved!");
     }
 }
 
@@ -302,17 +295,17 @@ static void esl_fsm_led(led_event_t event)
 
     if (event == VIEW_COLOR)
     {
-        NRF_LOG_INFO("Current color: H = %d, S = %d, V = %d",
-                     led_color_context.new_color.hue,
-                     led_color_context.new_color.sat,
-                     led_color_context.new_color.val);
+        esl_log_color(led_event_names[led_color_context.event],
+                      led_color_context.new_color.hue,
+                      led_color_context.new_color.sat,
+                      led_color_context.new_color.val);
     }
     
     if (event == CHANGE_MODE)
     {
         last_state = led_color_context.state;
         led_color_context.state = (led_color_context.state + 1) % LED_STATE_COUNT;
-        NRF_LOG_INFO("%s Now: %s", led_event_names[event], led_state_names[led_color_context.state]);
+        ESL_LOG_INFO("%s Now: %s", led_event_names[event], led_state_names[led_color_context.state]);
 
         if (last_state == VIEWING)
         {
@@ -331,13 +324,20 @@ static void esl_fsm_led(led_event_t event)
     else if (event == START_EDITING || event == STOP_EDITING)
     {
         led_color_context.event = event;
+        esl_log_color(led_event_names[led_color_context.event],
+                      led_color_context.new_color.hue,
+                      led_color_context.new_color.sat,
+                      led_color_context.new_color.val);
     }
     else if (event == PWM_TICK && led_color_context.event == START_EDITING)
     {
         log_counter++;
         if (log_counter == LOG_TICK)
         {
-            log_current_color();
+            esl_log_color(led_event_names[led_color_context.event],
+                          led_color_context.new_color.hue,
+                          led_color_context.new_color.sat,
+                          led_color_context.new_color.val);
             log_counter = 0;
         }
     }

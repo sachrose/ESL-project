@@ -1,13 +1,8 @@
 #include "esl_features.h"
+#include "esl_log.h"
 #include "esl_led.h"
 #include "esl_button.h"
 #include "esl_eeprom.h"
-#include "nrf_log.h"
-#include "nrf_log_ctrl.h"
-#include "nrf_log_backend_usb.h"
-#include "nrf_log_default_backends.h"
-
-static void log_init(void);
 
 static const uint16_t esl_device_id[ESL_LEDS_NUMBER] = ESL_DEVICE_ID;
 
@@ -79,7 +74,7 @@ static void usb_ev_handler(app_usbd_class_inst_t const* p_inst, app_usbd_cdc_acm
         }
         case APP_USBD_CDC_ACM_USER_EVT_TX_DONE:
         {
-            NRF_LOG_INFO("TX done");
+            ESL_LOG_INFO("TX done");
             break;
         }
         case APP_USBD_CDC_ACM_USER_EVT_RX_DONE:
@@ -94,6 +89,7 @@ static void usb_ev_handler(app_usbd_class_inst_t const* p_inst, app_usbd_cdc_acm
                     }
                     ret = app_usbd_cdc_acm_read(&usb_cdc_acm, cli_context.rx_byte, READ_SIZE);
                 } while (ret == NRF_SUCCESS);
+                break;
             }
         default:
             break;
@@ -232,6 +228,7 @@ static void esl_fsm_cli(cli_event_t event)
             {
                 cli_context.cmd_buf_idx = 0;
                 cli_context.cmd_ready = false;
+                cli_context.cmd_buf_overflow = false;
                 cli_context.state = RECEIVING;
                 app_usbd_cdc_acm_read(&usb_cdc_acm, cli_context.rx_byte, READ_SIZE);
             }
@@ -278,14 +275,33 @@ static void esl_fsm_cli(cli_event_t event)
                     if (!cli_context.cmd_ready && cli_context.cmd_buf_idx < (CMD_SIZE - 1))
                     {
                         cli_context.cmd_buffer[cli_context.cmd_buf_idx++] = ch;
-                        esl_cli_print(cli_context.rx_byte);
+                        app_usbd_cdc_acm_read(&usb_cdc_acm, cli_context.rx_byte, READ_SIZE);
                     }
                     else
                     {
                         cli_context.cmd_buf_overflow = true;
                     }
-            break;
             }
+            break;
+
+
+                    if (!cli_context.cmd_ready && cli_context.cmd_buf_idx < (CMD_SIZE - 1))
+                    {
+                        cli_context.cmd_buffer[cli_context.cmd_buf_idx++] = ch;
+                        // Формируем корректную строку из 1 символа для эха
+                        char echo_str[2] = {ch, '\0'};
+                        esl_cli_print(echo_str);
+                    }
+                    else
+                    {
+                        cli_context.cmd_buf_overflow = true;
+                    }
+
+
+
+
+
+
         }
         case EXECUTION:
         {
@@ -351,28 +367,20 @@ void esl_cli_process(char* command)
 }
 #endif
 
-static void log_init(void)
-{
-    ret_code_t ret = NRF_LOG_INIT(NULL);
-    APP_ERROR_CHECK(ret);
-
-    NRF_LOG_DEFAULT_BACKENDS_INIT();
-}
-
 void hardware_init(void)
 {
     log_init();
-    NRF_LOG_INFO(">hardware_init()");
+    ESL_LOG_INFO(">hardware_init()");
 
 #if ESTC_USB_CLI_ENABLED
        cli_init();
 #endif
 
     app_timer_init();
-    NRF_LOG_DEBUG("Init the LF clock for USB, init app timer - End");
+    ESL_LOG_DEBUG("Init the LF clock for USB, init app timer - End");
 
     esl_button_config(view_current_color, change_mode, start_editing, stop_editing);
-    NRF_LOG_DEBUG("Init button - End");
+    ESL_LOG_DEBUG("Init button - End");
  
     hsv_word_t start_color =
     {
@@ -382,13 +390,8 @@ void hardware_init(void)
     };
     state_read_handler(&start_color);
     esl_pwm_led_config(start_color, state_write_handler);
-    NRF_LOG_DEBUG("Init PWM - End");
+    ESL_LOG_DEBUG("Init PWM - End");
 
-    NRF_LOG_INFO("<hardware_init()");
+    ESL_LOG_INFO("<hardware_init()");
 }
 
-void esl_log_process(void)
-{
-    LOG_BACKEND_USB_PROCESS();
-    NRF_LOG_PROCESS();
-}

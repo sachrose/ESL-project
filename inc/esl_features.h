@@ -66,6 +66,6 @@ void esl_cli_process(char* command);
 
 void hardware_init(void);
 
-void esl_log_process(void);
+
 
 #endif

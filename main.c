@@ -40,6 +40,7 @@
 
 #include <stdbool.h>
 #include "nrf_gpio.h"
+#include "esl_log.h"
 #include "esl_features.h"
 #include "cmsis_gcc.h"
 
